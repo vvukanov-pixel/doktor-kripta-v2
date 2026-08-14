@@ -1,11 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="hr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1a">
-<title>Doktor Kripta v2 — Range Trader</title>
+<title>Doktor Kripta v3 — Precision Range</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
@@ -13,8 +12,7 @@ tailwind.config = {
   theme: {
     extend: {
       colors: {
-        dark: { 900: '#050914', 800: '#0a0f1a', 700: '#111827', 600: '#1a2332', 500: '#243044' },
-        accent: { green: '#22c55e', red: '#ef4444', blue: '#38bdf8', yellow: '#f59e0b', purple: '#a78bfa' }
+        dark: { 900: '#050914', 800: '#0a0f1a', 700: '#111827', 600: '#1a2332', 500: '#243044' }
       }
     }
   }
@@ -29,275 +27,157 @@ tailwind.config = {
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
   canvas { max-height: 180px; }
-  .signal-buy { box-shadow: 0 0 0 1px #22c55e44, 0 4px 20px #22c55e15; }
-  .signal-sell { box-shadow: 0 0 0 1px #ef444444, 0 4px 20px #ef444415; }
-  .signal-hold { opacity: 0.85; }
+  .signal-buy { box-shadow: 0 0 0 1px #22c55e55, 0 4px 24px #22c55e18; }
+  .signal-sell { box-shadow: 0 0 0 1px #ef444455, 0 4px 24px #ef444418; }
+  .signal-hold { opacity: 0.82; }
+  .conf-high { outline: 1px solid #22c55e66; }
 </style>
 </head>
 <body class="bg-dark-900 text-white min-h-screen">
 
-<!-- HEADER -->
 <header class="sticky top-0 z-50 bg-dark-800/95 backdrop-blur border-b border-slate-800 px-4 py-3">
   <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center text-xl font-black">🩺</div>
       <div>
-        <h1 class="text-lg sm:text-xl font-black tracking-tight">Doktor Kripta <span class="text-emerald-400">v2</span></h1>
-        <p class="text-xs text-slate-400">Range · Mean-reversion · Top 100 + GALA + JASMY</p>
+        <h1 class="text-lg sm:text-xl font-black tracking-tight">Doktor Kripta <span class="text-emerald-400">v3</span></h1>
+        <p class="text-xs text-slate-400">Precision Range · Mean-reversion · Confluence scoring</p>
       </div>
     </div>
     <div class="flex gap-2">
       <button onclick="loadAll()" id="btnAnalyze" class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-900 font-bold text-sm transition">⚡ Analiziraj</button>
-      <button onclick="toggleAuto()" id="btnAuto" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-semibold transition">🔄 Auto OFF</button>
+      <button onclick="toggleAuto()" id="btnAuto" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-semibold">🔄 Auto OFF</button>
     </div>
   </div>
 </header>
 
-<main class="max-w-6xl mx-auto px-3 sm:px-4 py-4">
+<main class="max-w-6xl mx-auto px-3 sm:px-4 py-4 space-y-4">
 
-  <!-- STATUS / MAIN DIAG -->
-  <div class="card p-4 mb-4">
-    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-      <h2 class="font-bold text-base">🩺 Doktorova dijagnoza (Range Trader)</h2>
-      <span id="statusPill" class="pill bg-slate-800 text-slate-300">čekam analizu</span>
+  <div class="card p-4">
+    <div class="flex items-center justify-between gap-2 mb-2">
+      <h2 class="font-bold text-base sm:text-lg flex items-center gap-2">🩺 Doktorova dijagnoza</h2>
+      <span id="statusPill" class="pill bg-slate-700 text-slate-300">čekam analizu</span>
     </div>
-    <p id="mainDiag" class="text-sm text-slate-300 leading-relaxed">Pritisni <b>Analiziraj</b>. Sustav traži coine blizu lokalnog dna/vrha rangea za male skokove, ne čeka veliki krah.</p>
-    <div id="statsRow" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 hidden">
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">BUY signali</div><div id="statBuy" class="text-lg font-black text-emerald-400">0</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">SELL signali</div><div id="statSell" class="text-lg font-black text-red-400">0</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">Najbolji BUY</div><div id="statBest" class="text-sm font-bold text-sky-400 truncate">—</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">Zadnje</div><div id="statTime" class="text-sm font-bold text-slate-300">—</div></div>
+    <p id="mainDiag" class="text-sm text-slate-300 leading-relaxed">
+      Pritisni <b>Analiziraj</b>. v3 koristi <b>confluence scoring</b> — signal mora imati potvrdu iz range pozicije + RSI + Bollinger. Samo kvalitetni rangeovi (min 3.5%). Stroži pragovi za manje, ali preciznije signale.
+    </p>
+    <div id="statsRow" class="hidden grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3">
+      <div class="bg-dark-900 rounded-xl p-2.5 text-center">
+        <div class="text-[10px] text-slate-500 uppercase">BUY</div>
+        <div id="statBuy" class="text-2xl font-black text-emerald-400">0</div>
+      </div>
+      <div class="bg-dark-900 rounded-xl p-2.5 text-center">
+        <div class="text-[10px] text-slate-500 uppercase">SELL</div>
+        <div id="statSell" class="text-2xl font-black text-red-400">0</div>
+      </div>
+      <div class="bg-dark-900 rounded-xl p-2.5 text-center">
+        <div class="text-[10px] text-slate-500 uppercase">High conf</div>
+        <div id="statHigh" class="text-2xl font-black text-yellow-400">0</div>
+      </div>
+      <div class="bg-dark-900 rounded-xl p-2.5 text-center">
+        <div class="text-[10px] text-slate-500 uppercase">Najbolji</div>
+        <div id="statBest" class="text-lg font-black text-sky-400">—</div>
+      </div>
+      <div class="bg-dark-900 rounded-xl p-2.5 text-center">
+        <div class="text-[10px] text-slate-500 uppercase">Zadnje</div>
+        <div id="statTime" class="text-lg font-black">—</div>
+      </div>
     </div>
   </div>
 
-  <!-- TABS -->
-  <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-4">
-    <button class="tab-btn active py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="market" onclick="setTab('market',this)">📊 Tržište</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="signals" onclick="setTab('signals',this)">🎯 Signali</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="watch" onclick="setTab('watch',this)">⭐ Watch</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="sim" onclick="setTab('sim',this)">🎮 Sim</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="portfolio" onclick="setTab('portfolio',this)">💼 Portfolio</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="alerts" onclick="setTab('alerts',this)">🚨 Alerti</button>
+  <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+    <button class="tab-btn active py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="market" onclick="setTab('market',this)">📊 Tržište</button>
+    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="signals" onclick="setTab('signals',this)">🎯 Signali</button>
+    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="watch" onclick="setTab('watch',this)">⭐ Watch</button>
+    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="sim" onclick="setTab('sim',this)">🎮 Sim</button>
+    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="portfolio" onclick="setTab('portfolio',this)">💼 Portfolio</button>
+    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="alerts" onclick="setTab('alerts',this)">🚨 Alerti</button>
   </div>
 
-  <!-- FILTERS -->
-  <div id="filterBar" class="flex flex-wrap gap-2 mb-3 items-center">
-    <select id="filterSignal" class="bg-dark-700 border border-slate-700 rounded-lg px-3 py-1.5 text-sm" onchange="renderList()">
-      <option value="all">Svi signali</option>
-      <option value="BUY">Samo BUY</option>
-      <option value="SELL">Samo SELL</option>
-      <option value="HOLD">Samo HOLD</option>
+  <div class="flex flex-wrap gap-2 items-center">
+    <select id="filterSig" onchange="renderList()" class="bg-dark-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm">
+      <option value="all">Svi</option>
+      <option value="BUY">BUY</option>
+      <option value="SELL">SELL</option>
+      <option value="HOLD">HOLD</option>
+      <option value="HIGH">Samo high conf</option>
     </select>
-    <select id="filterSort" class="bg-dark-700 border border-slate-700 rounded-lg px-3 py-1.5 text-sm" onchange="renderList()">
-      <option value="score">Sort: Score</option>
-      <option value="range">Sort: Range pozicija</option>
-      <option value="change">Sort: 24h %</option>
-      <option value="mcap">Sort: Market Cap</option>
+    <select id="sortBy" onchange="renderList()" class="bg-dark-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm">
+      <option value="score">Score</option>
+      <option value="rr">R:R</option>
+      <option value="change">24h %</option>
+      <option value="mcap">Market Cap</option>
+      <option value="name">Ime</option>
     </select>
-    <input id="searchCoin" type="text" placeholder="Traži coin..." class="bg-dark-700 border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-28 sm:w-40" oninput="renderList()">
+    <input id="searchCoin" type="text" placeholder="Traži…" oninput="renderList()" class="bg-dark-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm w-28 sm:w-36">
   </div>
 
-  <!-- SECTIONS -->
-  <section id="sec-market">
-    <div id="coinList" class="space-y-3"></div>
-  </section>
+  <section id="sec-market"><div id="coinList" class="space-y-3"></div></section>
 
   <section id="sec-signals" class="hidden">
     <div class="card p-4 mb-3">
-      <h3 class="font-bold mb-1">🎯 Aktivni signali (Range)</h3>
-      <p class="text-xs text-slate-400 mb-3">BUY = blizu dna rangea · SELL = blizu vrha rangea. Cilj: male oscilacije.</p>
-      <div id="signalsList" class="space-y-3"></div>
+      <h3 class="font-bold mb-1">🎯 Aktivni signali</h3>
+      <p class="text-xs text-slate-400">BUY ≥ 75 + confluence · SELL ≤ 25 + confluence. High conf = score ekstrem + RSI + BB potvrda.</p>
     </div>
+    <div id="signalList" class="space-y-3"></div>
   </section>
 
   <section id="sec-watch" class="hidden">
-  <div class="card p-4 mb-3 flex gap-2">
-    <input id="watchInput" type="text" placeholder="Upiši coin (BTC, GALA...)" class="flex-1 bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm uppercase">
-    <button onclick="addToWatch()" class="px-4 py-2 rounded-lg bg-emerald-600 font-bold text-sm">Dodaj</button>
-  </div>
-  <div id="watchList" class="space-y-3"></div>
-</section>
-
-  <section id="sec-sim" class="hidden">
     <div class="card p-4 mb-3">
-      <h3 class="font-bold mb-2">🎮 Paper Trading Simulator</h3>
-      <p class="text-xs text-slate-400 mb-3">Simulira ulaze na range signale. Risk 1–2% po tradeu. TP/SL prema ATR i rangeu.</p>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Kapital</div><div id="simCapital" class="font-black text-emerald-400">$10,000</div></div>
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Equity</div><div id="simEquity" class="font-black">$10,000</div></div>
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Otvorene</div><div id="simOpen" class="font-black text-sky-400">0</div></div>
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">P/L</div><div id="simPL" class="font-black">$0</div></div>
-      </div>
-      <div class="flex flex-wrap gap-2 mb-3">
-        <button onclick="simReset()" class="px-3 py-1.5 rounded-lg bg-slate-700 text-sm font-semibold">Reset $10k</button>
-        <button onclick="simAutoTrade()" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-sm font-bold">Auto-trguj signale</button>
-      </div>
-      <div id="simTrades" class="space-y-2 text-sm max-h-80 overflow-y-auto"></div>
+      <h3 class="font-bold mb-1">⭐ Watchlist</h3>
+      <p class="text-xs text-slate-400">Označi ★ na karticama.</p>
     </div>
-  </section>
-
-  
-<!DOCTYPE html>
-<html lang="hr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0a0f1a">
-<title>Doktor Kripta v2 — Range Trader</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        dark: { 900: '#050914', 800: '#0a0f1a', 700: '#111827', 600: '#1a2332', 500: '#243044' },
-        accent: { green: '#22c55e', red: '#ef4444', blue: '#38bdf8', yellow: '#f59e0b', purple: '#a78bfa' }
-      }
-    }
-  }
-}
-</script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-  body { font-family: 'Inter', system-ui, sans-serif; }
-  .card { background: rgba(17,24,39,0.92); border: 1px solid #1e293b; border-radius: 16px; }
-  .pill { font-size: 11px; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
-  .tab-btn.active { background: linear-gradient(135deg,#22c55e,#16a34a); color: #052e16; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-  canvas { max-height: 180px; }
-  .signal-buy { box-shadow: 0 0 0 1px #22c55e44, 0 4px 20px #22c55e15; }
-  .signal-sell { box-shadow: 0 0 0 1px #ef444444, 0 4px 20px #ef444415; }
-  .signal-hold { opacity: 0.85; }
-</style>
-</head>
-<body class="bg-dark-900 text-white min-h-screen">
-
-<!-- HEADER -->
-<header class="sticky top-0 z-50 bg-dark-800/95 backdrop-blur border-b border-slate-800 px-4 py-3">
-  <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center text-xl font-black">🩺</div>
-      <div>
-        <h1 class="text-lg sm:text-xl font-black tracking-tight">Doktor Kripta <span class="text-emerald-400">v2</span></h1>
-        <p class="text-xs text-slate-400">Range · Mean-reversion · Top 100 + GALA + JASMY</p>
-      </div>
-    </div>
-    <div class="flex gap-2">
-      <button onclick="loadAll()" id="btnAnalyze" class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-900 font-bold text-sm transition">⚡ Analiziraj</button>
-      <button onclick="toggleAuto()" id="btnAuto" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-semibold transition">🔄 Auto OFF</button>
-    </div>
-  </div>
-</header>
-
-<main class="max-w-6xl mx-auto px-3 sm:px-4 py-4">
-
-  <!-- STATUS / MAIN DIAG -->
-  <div class="card p-4 mb-4">
-    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-      <h2 class="font-bold text-base">🩺 Doktorova dijagnoza (Range Trader)</h2>
-      <span id="statusPill" class="pill bg-slate-800 text-slate-300">čekam analizu</span>
-    </div>
-    <p id="mainDiag" class="text-sm text-slate-300 leading-relaxed">Pritisni <b>Analiziraj</b>. Sustav traži coine blizu lokalnog dna/vrha rangea za male skokove, ne čeka veliki krah.</p>
-    <div id="statsRow" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 hidden">
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">BUY signali</div><div id="statBuy" class="text-lg font-black text-emerald-400">0</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">SELL signali</div><div id="statSell" class="text-lg font-black text-red-400">0</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">Najbolji BUY</div><div id="statBest" class="text-sm font-bold text-sky-400 truncate">—</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5 text-center"><div class="text-[10px] text-slate-500 uppercase">Zadnje</div><div id="statTime" class="text-sm font-bold text-slate-300">—</div></div>
-    </div>
-  </div>
-
-  <!-- TABS -->
-  <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-4">
-    <button class="tab-btn active py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="market" onclick="setTab('market',this)">📊 Tržište</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="signals" onclick="setTab('signals',this)">🎯 Signali</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="watch" onclick="setTab('watch',this)">⭐ Watch</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="sim" onclick="setTab('sim',this)">🎮 Sim</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="portfolio" onclick="setTab('portfolio',this)">💼 Portfolio</button>
-    <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold flex items-center justify-center gap-1" data-tab="alerts" onclick="setTab('alerts',this)">🚨 Alerti</button>
-  </div>
-
-  <!-- FILTERS -->
-  <div id="filterBar" class="flex flex-wrap gap-2 mb-3 items-center">
-    <select id="filterSignal" class="bg-dark-700 border border-slate-700 rounded-lg px-3 py-1.5 text-sm" onchange="renderList()">
-      <option value="all">Svi signali</option>
-      <option value="BUY">Samo BUY</option>
-      <option value="SELL">Samo SELL</option>
-      <option value="HOLD">Samo HOLD</option>
-    </select>
-    <select id="filterSort" class="bg-dark-700 border border-slate-700 rounded-lg px-3 py-1.5 text-sm" onchange="renderList()">
-      <option value="score">Sort: Score</option>
-      <option value="range">Sort: Range pozicija</option>
-      <option value="change">Sort: 24h %</option>
-      <option value="mcap">Sort: Market Cap</option>
-    </select>
-    <input id="searchCoin" type="text" placeholder="Traži coin..." class="bg-dark-700 border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-28 sm:w-40" oninput="renderList()">
-  </div>
-
-  <!-- SECTIONS -->
-  <section id="sec-market">
-    <div id="coinList" class="space-y-3"></div>
-  </section>
-
-  <section id="sec-signals" class="hidden">
-    <div class="card p-4 mb-3">
-      <h3 class="font-bold mb-1">🎯 Aktivni signali (Range)</h3>
-      <p class="text-xs text-slate-400 mb-3">BUY = blizu dna rangea · SELL = blizu vrha rangea. Cilj: male oscilacije.</p>
-      <div id="signalsList" class="space-y-3"></div>
-    </div>
-  </section>
-
-  <section id="sec-watch" class="hidden">
-    <div class="card p-4 mb-3"><p class="text-sm text-slate-400">Označi ⭐ na karticama. Ovdje su favoriti.</p></div>
     <div id="watchList" class="space-y-3"></div>
   </section>
 
   <section id="sec-sim" class="hidden">
-    <div class="card p-4 mb-3">
-      <h3 class="font-bold mb-2">🎮 Paper Trading Simulator</h3>
-      <p class="text-xs text-slate-400 mb-3">Simulira ulaze na range signale. Risk 1–2% po tradeu. TP/SL prema ATR i rangeu.</p>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+    <div class="card p-4">
+      <h3 class="font-bold mb-1">🎮 Paper Trading</h3>
+      <p class="text-xs text-slate-400 mb-3">Risk 1.5% · max 4 otvorene · auto SL/TP · samo high/srednja conf.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Kapital</div><div id="simCapital" class="font-black text-emerald-400">$10,000</div></div>
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Equity</div><div id="simEquity" class="font-black">$10,000</div></div>
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Otvorene</div><div id="simOpen" class="font-black text-sky-400">0</div></div>
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">P/L</div><div id="simPL" class="font-black">$0</div></div>
+        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Winrate</div><div id="simWR" class="font-black text-yellow-400">—</div></div>
       </div>
       <div class="flex flex-wrap gap-2 mb-3">
         <button onclick="simReset()" class="px-3 py-1.5 rounded-lg bg-slate-700 text-sm font-semibold">Reset $10k</button>
-        <button onclick="simAutoTrade()" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-sm font-bold">Auto-trguj signale</button>
+        <button onclick="simAutoTrade()" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-sm font-bold">Auto-trguj (high conf)</button>
       </div>
       <div id="simTrades" class="space-y-2 text-sm max-h-80 overflow-y-auto"></div>
     </div>
   </section>
 
   <section id="sec-portfolio" class="hidden">
-  <div class="card p-4 mb-3">
-    <h3 class="font-bold mb-2">💼 Portfolio (ručno)</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
-      <input id="pfCoin" type="text" placeholder="BTC, SOL, PEPE..." class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm uppercase">
-      <input id="pfAmount" type="number" placeholder="Količina" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-      <input id="pfEntry" type="number" placeholder="Ulaz $" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-      <button onclick="pfAdd()" class="px-3 py-2 rounded-lg bg-emerald-600 font-bold text-sm">Dodaj</button>
+    <div class="card p-4">
+      <h3 class="font-bold mb-3">💼 Portfolio (ručno)</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
+        <select id="pfCoin" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></select>
+        <input id="pfAmount" type="number" step="any" placeholder="Količina" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+        <input id="pfEntry" type="number" step="any" placeholder="Entry (opcionalno)" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+        <button onclick="pfAdd()" class="px-3 py-2 rounded-lg bg-emerald-600 font-bold text-sm">Dodaj</button>
+      </div>
+      <div id="pfList" class="space-y-2 text-sm"></div>
     </div>
-    <div id="pfList" class="space-y-2 text-sm"></div>
-  </div>
-</section>
+  </section>
 
   <section id="sec-alerts" class="hidden">
     <div class="card p-4">
       <h3 class="font-bold mb-2">🚨 Alerti (lokalno)</h3>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
         <select id="aCoin" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></select>
-        <input id="aBelow" type="number" placeholder="Cijena ispod" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-        <input id="aScore" type="number" placeholder="BUY score iznad" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+        <input id="aBelow" type="number" step="any" placeholder="Cijena ispod" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+        <input id="aScore" type="number" placeholder="BUY score ≥" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
       </div>
-      <button onclick="saveAlert()" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-emerald-600 font-bold text-sm mb-3">Spremi alert</button>
-      <div id="alertText" class="text-sm text-slate-300"></div>
+      <div class="flex gap-2 mb-3">
+        <button onclick="saveAlert()" class="px-3 py-2 rounded-lg bg-emerald-600 font-bold text-sm">Spremi</button>
+        <button onclick="clearAlert()" class="px-3 py-2 rounded-lg bg-slate-700 text-sm">Obriši</button>
+      </div>
+      <div id="alertText" class="text-sm text-slate-400">Nema alertova.</div>
     </div>
   </section>
 
-  <!-- DETAIL MODAL -->
   <div id="detailModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 p-3" onclick="if(event.target===this)closeDetail()">
     <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-4">
       <div class="flex justify-between items-start mb-3">
@@ -310,40 +190,61 @@ tailwind.config = {
       <canvas id="dChart" height="160" class="mb-3 rounded-xl bg-dark-900"></canvas>
       <div id="dBody" class="text-sm space-y-2"></div>
       <div class="flex gap-2 mt-4">
-        <button id="dBuyBtn" onclick="simOpenFromDetail('BUY')" class="flex-1 py-2.5 rounded-xl bg-emerald-600 font-bold text-sm">Paper BUY</button>
-        <button id="dSellBtn" onclick="simOpenFromDetail('SELL')" class="flex-1 py-2.5 rounded-xl bg-red-600 font-bold text-sm">Paper SELL</button>
+        <button onclick="simOpenFromDetail('BUY')" class="flex-1 py-2.5 rounded-xl bg-emerald-600 font-bold text-sm">Paper BUY</button>
+        <button onclick="simOpenFromDetail('SELL')" class="flex-1 py-2.5 rounded-xl bg-red-600 font-bold text-sm">Paper SELL</button>
       </div>
     </div>
   </div>
-
 </main>
 
-<footer class="text-center text-xs text-slate-600 py-6">Doktor Kripta v2 · Range / Mean-reversion · CoinGecko · Nije financijski savjet</footer>
+<footer class="text-center text-xs text-slate-600 py-6">Doktor Kripta v3 · Precision Range · CoinGecko · Nije financijski savjet</footer>
 
 <script>
 // ═══════════════════════════════════════════════════════════
-// CONFIG & STATE
+// CONFIG
 // ═══════════════════════════════════════════════════════════
-const EXTRA_IDS = ['gala', 'jasmycoin'];
-let coins = [];          // analyzed array
-let latest = {};         // symbol -> data
+// Tvoji + likvidni favoriti (dobri za range / mean-reversion)
+const COIN_IDS = [
+  // Core (tvoji)
+  'bitcoin','ethereum','solana','sui','litecoin','avalanche-2','chainlink',
+  'pepe','near','shiba-inu','stellar','monero','cardano','dogecoin','tron','ripple',
+  // Favoriti – likvidni, volatilni, dobri rangeovi
+  'binancecoin','polkadot','uniswap','aave','arbitrum','optimism',
+  'injective-protocol','render-token','cosmos','aptos','fetch-ai','kaspa','hedera-hashgraph'
+];
+
+const CFG = {
+  minRangePct: 3.5,       // ispod ovoga = HOLD (preusko)
+  buyScore: 75,           // stroži BUY
+  sellScore: 25,          // stroži SELL
+  highBuy: 85,            // high confidence
+  highSell: 15,
+  riskPct: 0.015,         // 1.5% risk po tradeu
+  maxOpen: 4,
+  maxNotionalPct: 0.28,
+  autoMinScoreBuy: 82,
+  autoMaxScoreSell: 18
+};
+
+let coins = [];
+let latest = {};
 let autoTimer = null;
 let chartInstance = null;
 let detailCoin = null;
 
 const LS = {
-  watch: () => JSON.parse(localStorage.getItem('dk2_watch') || '[]'),
-  setWatch: v => localStorage.setItem('dk2_watch', JSON.stringify(v)),
-  pf: () => JSON.parse(localStorage.getItem('dk2_pf') || '[]'),
-  setPf: v => localStorage.setItem('dk2_pf', JSON.stringify(v)),
-  alert: () => JSON.parse(localStorage.getItem('dk2_alert') || 'null'),
-  setAlert: v => localStorage.setItem('dk2_alert', JSON.stringify(v)),
-  sim: () => JSON.parse(localStorage.getItem('dk2_sim') || JSON.stringify({ capital: 10000, equity: 10000, trades: [] })),
-  setSim: v => localStorage.setItem('dk2_sim', JSON.stringify(v)),
+  watch: () => JSON.parse(localStorage.getItem('dk3_watch') || '[]'),
+  setWatch: v => localStorage.setItem('dk3_watch', JSON.stringify(v)),
+  pf: () => JSON.parse(localStorage.getItem('dk3_pf') || '[]'),
+  setPf: v => localStorage.setItem('dk3_pf', JSON.stringify(v)),
+  alert: () => JSON.parse(localStorage.getItem('dk3_alert') || 'null'),
+  setAlert: v => localStorage.setItem('dk3_alert', JSON.stringify(v)),
+  sim: () => JSON.parse(localStorage.getItem('dk3_sim') || JSON.stringify({ capital: 10000, equity: 10000, trades: [] })),
+  setSim: v => localStorage.setItem('dk3_sim', JSON.stringify(v)),
 };
 
 // ═══════════════════════════════════════════════════════════
-// TECH INDICATORS
+// INDICATORS
 // ═══════════════════════════════════════════════════════════
 function sma(arr, n) {
   if (!arr || arr.length < n) return null;
@@ -379,25 +280,46 @@ function bollinger(prices, n=20) {
   const low = mid - 2*sd, high = mid + 2*sd;
   const last = prices.at(-1);
   const pos = (high-low) > 0 ? (last-low)/(high-low) : 0.5;
-  return { mid, low, high, pos };
+  return { mid, low, high, pos, width: high-low };
+}
+// Koliko je range "čist" – manje šuma = bolji mean-reversion
+function rangeQuality(prices) {
+  if (!prices || prices.length < 30) return 0.5;
+  const low = Math.min(...prices);
+  const high = Math.max(...prices);
+  const range = high - low || 1;
+  // Broj putovanja kroz sredinu rangea (više = choppy)
+  const mid = (low + high) / 2;
+  let crosses = 0;
+  for (let i=1; i<prices.length; i++) {
+    if ((prices[i-1] < mid && prices[i] >= mid) || (prices[i-1] > mid && prices[i] <= mid)) crosses++;
+  }
+  const expected = prices.length / 12;
+  // Idealno 4–10 crosses u 7d; previše = chaos
+  const q = 1 - Math.min(1, Math.abs(crosses - 7) / 20);
+  return Math.max(0.2, Math.min(1, q));
 }
 
 // ═══════════════════════════════════════════════════════════
-// RANGE / MEAN-REVERSION SCORING
+// PRECISION SCORING (confluence)
 // ═══════════════════════════════════════════════════════════
-function analyzeSparkline(spark, price, change24h) {
-  // spark = array of ~168 hourly prices (7d)
-  if (!spark || spark.length < 24) {
-    return { score: 50, signal: 'HOLD', rangePos: 0.5, rsi: null, reason: 'Nedovoljno podataka' };
-  }
+function analyzeSparkline(spark, price, change24h, volume, mcap) {
+  const empty = {
+    score: 50, signal: 'HOLD', conf: 'niska', quality: 0, rr: 0,
+    rangePos: 0.5, rangePos24: 0.5, rsi: null, rangePct: 0,
+    entry: price, sl: price, tp1: price, tp2: price,
+    reason: 'Nedovoljno podataka', confluence: 0
+  };
+  if (!spark || spark.length < 30) return empty;
+
   const prices = spark.map(Number);
   const last = price || prices.at(-1);
   const low7 = Math.min(...prices);
   const high7 = Math.max(...prices);
   const range = high7 - low7 || 1;
-  const rangePos = (last - low7) / range; // 0=bottom, 1=top
+  const rangePct = (range / last) * 100;
+  const rangePos = (last - low7) / range;
 
-  // last 24 points ~1d
   const day = prices.slice(-24);
   const low24 = Math.min(...day);
   const high24 = Math.max(...day);
@@ -406,112 +328,169 @@ function analyzeSparkline(spark, price, change24h) {
 
   const r = rsi(prices, 14);
   const bb = bollinger(prices, 20);
-  const atr = atrApprox(prices, 14);
+  const atr = atrApprox(prices, 14) || range * 0.02;
   const sma20 = sma(prices, 20);
   const distSma = sma20 ? ((last - sma20) / sma20) * 100 : 0;
+  const quality = rangeQuality(prices);
 
-  // MEAN-REVERSION SCORE (0-100)
-  // High score = strong BUY opportunity (near bottom of range)
-  // Low score = strong SELL opportunity (near top)
-  let score = 50;
+  // Premalen range → HOLD
+  if (rangePct < CFG.minRangePct) {
+    return {
+      ...empty, score: 50, rangePct, rangePos, rangePos24, rsi: r,
+      low7, high7, low24, high24, atr, quality,
+      reason: `range premalen (${rangePct.toFixed(1)}% < ${CFG.minRangePct}%)`
+    };
+  }
 
-  // Primary: 7d range position (most weight)
-  // Invert: bottom = high score
-  score += (0.5 - rangePos) * 50; // ±25
+  // ——— CONFLUENCE COMPONENTS (0–1 each) ———
+  // 1) Range position (najvažnije)
+  let rangeScore = 0;
+  if (rangePos <= 0.12) rangeScore = 1.0;
+  else if (rangePos <= 0.22) rangeScore = 0.75;
+  else if (rangePos <= 0.35) rangeScore = 0.4;
+  else if (rangePos >= 0.88) rangeScore = -1.0;
+  else if (rangePos >= 0.78) rangeScore = -0.75;
+  else if (rangePos >= 0.65) rangeScore = -0.4;
 
-  // 24h range
-  score += (0.5 - rangePos24) * 20; // ±10
+  // 2) 24h position
+  let pos24 = 0;
+  if (rangePos24 <= 0.15) pos24 = 0.6;
+  else if (rangePos24 <= 0.25) pos24 = 0.35;
+  else if (rangePos24 >= 0.85) pos24 = -0.6;
+  else if (rangePos24 >= 0.75) pos24 = -0.35;
 
-  // RSI: oversold boosts buy, overbought lowers
+  // 3) RSI
+  let rsiScore = 0;
   if (r !== null) {
-    if (r < 30) score += 18;
-    else if (r < 40) score += 10;
-    else if (r > 70) score -= 18;
-    else if (r > 60) score -= 10;
+    if (r <= 25) rsiScore = 1.0;
+    else if (r <= 32) rsiScore = 0.7;
+    else if (r <= 40) rsiScore = 0.35;
+    else if (r >= 75) rsiScore = -1.0;
+    else if (r >= 68) rsiScore = -0.7;
+    else if (r >= 60) rsiScore = -0.35;
   }
 
-  // Bollinger
+  // 4) Bollinger
+  let bbScore = 0;
   if (bb) {
-    if (bb.pos < 0.15) score += 12;
-    else if (bb.pos < 0.3) score += 6;
-    else if (bb.pos > 0.85) score -= 12;
-    else if (bb.pos > 0.7) score -= 6;
+    if (bb.pos <= 0.08) bbScore = 1.0;
+    else if (bb.pos <= 0.18) bbScore = 0.65;
+    else if (bb.pos <= 0.28) bbScore = 0.3;
+    else if (bb.pos >= 0.92) bbScore = -1.0;
+    else if (bb.pos >= 0.82) bbScore = -0.65;
+    else if (bb.pos >= 0.72) bbScore = -0.3;
   }
 
-  // Mild mean-reversion on SMA
-  if (distSma < -3) score += 5;
-  else if (distSma > 3) score -= 5;
+  // 5) SMA distance (mean reversion)
+  let smaScore = 0;
+  if (distSma <= -4) smaScore = 0.4;
+  else if (distSma <= -2) smaScore = 0.2;
+  else if (distSma >= 4) smaScore = -0.4;
+  else if (distSma >= 2) smaScore = -0.2;
 
-  // Don't fight strong 24h momentum too hard (small penalty)
-  if (change24h < -8) score -= 4;
-  if (change24h > 8) score += 4;
+  // Weighted confluence (-1 … +1)
+  const raw = (
+    rangeScore * 0.38 +
+    pos24 * 0.12 +
+    rsiScore * 0.25 +
+    bbScore * 0.18 +
+    smaScore * 0.07
+  );
 
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  // Quality multiplier – choppy range smanjuje score prema 50
+  const adjusted = raw * (0.55 + 0.45 * quality);
 
+  // Momentum filter: ne bori se s ekstremnim 24h moveom
+  let momPenalty = 0;
+  if (change24h < -12 && adjusted > 0) momPenalty = -0.15; // jako dump – oprez s BUY
+  if (change24h > 12 && adjusted < 0) momPenalty = 0.15;  // jaki pump – oprez s SELL
+
+  const finalRaw = Math.max(-1, Math.min(1, adjusted + momPenalty));
+  let score = Math.round(50 + finalRaw * 50);
+  score = Math.max(0, Math.min(100, score));
+
+  // Confluence count (koliko indikatora se slaže)
+  let confluence = 0;
+  if (Math.abs(rangeScore) >= 0.7) confluence++;
+  if (Math.abs(rsiScore) >= 0.7) confluence++;
+  if (Math.abs(bbScore) >= 0.65) confluence++;
+  if (Math.abs(pos24) >= 0.35) confluence++;
+
+  // Signal – stroži + zahtijeva confluence
   let signal = 'HOLD';
   let conf = 'niska';
-  if (score >= 72) { signal = 'BUY'; conf = score >= 82 ? 'visoka' : 'srednja'; }
-  else if (score <= 28) { signal = 'SELL'; conf = score <= 18 ? 'visoka' : 'srednja'; }
-
-  // Targets based on range + ATR
-  const atrVal = atr || range * 0.02;
-  let entry = last, sl, tp1, tp2;
-  if (signal === 'BUY') {
-    sl = Math.max(low7 * 0.995, last - atrVal * 1.4);
-    tp1 = last + (last - sl) * 1.5;
-    tp2 = Math.min(high7 * 0.98, last + (last - sl) * 2.5);
-  } else if (signal === 'SELL') {
-    sl = Math.min(high7 * 1.005, last + atrVal * 1.4);
-    tp1 = last - (sl - last) * 1.5;
-    tp2 = Math.max(low7 * 1.02, last - (sl - last) * 2.5);
-  } else {
-    sl = last - atrVal * 1.5;
-    tp1 = last + atrVal * 1.5;
-    tp2 = last + atrVal * 2.5;
+  if (score >= CFG.buyScore && rangeScore > 0 && confluence >= 2) {
+    signal = 'BUY';
+    conf = (score >= CFG.highBuy && confluence >= 3) ? 'visoka' : 'srednja';
+  } else if (score <= CFG.sellScore && rangeScore < 0 && confluence >= 2) {
+    signal = 'SELL';
+    conf = (score <= CFG.highSell && confluence >= 3) ? 'visoka' : 'srednja';
   }
 
+  // Ako nema confluence, drži HOLD čak i ako je score ekstrem
+  if (confluence < 2 && (signal === 'BUY' || signal === 'SELL')) {
+    signal = 'HOLD';
+    conf = 'niska';
+  }
+
+  // Targets – realističniji R:R
+  let entry = last, sl, tp1, tp2, rr = 0;
+  if (signal === 'BUY') {
+    // SL ispod recent low ili ATR
+    sl = Math.min(last - atr * 1.2, low7 * 0.998, low24 * 0.997);
+    // Ne preblizu
+    if (last - sl < atr * 0.6) sl = last - atr * 0.9;
+    const risk = last - sl;
+    tp1 = last + risk * 1.8;
+    tp2 = Math.min(high7 * 0.985, last + risk * 3.0);
+    // Ne ciljaj iznad vrha rangea agresivno
+    if (tp1 > high7 * 0.98) tp1 = last + risk * 1.4;
+    rr = risk > 0 ? (tp1 - last) / risk : 0;
+  } else if (signal === 'SELL') {
+    sl = Math.max(last + atr * 1.2, high7 * 1.002, high24 * 1.003);
+    if (sl - last < atr * 0.6) sl = last + atr * 0.9;
+    const risk = sl - last;
+    tp1 = last - risk * 1.8;
+    tp2 = Math.max(low7 * 1.015, last - risk * 3.0);
+    if (tp1 < low7 * 1.02) tp1 = last - risk * 1.4;
+    rr = risk > 0 ? (last - tp1) / risk : 0;
+  } else {
+    sl = last - atr * 1.4;
+    tp1 = last + atr * 1.4;
+    tp2 = last + atr * 2.5;
+  }
+
+  // Reasons
   const reasons = [];
-  if (rangePos < 0.22) reasons.push('blizu 7d dna');
-  else if (rangePos > 0.78) reasons.push('blizu 7d vrha');
-  if (rangePos24 < 0.2) reasons.push('blizu 24h dna');
-  else if (rangePos24 > 0.8) reasons.push('blizu 24h vrha');
-  if (r !== null && r < 35) reasons.push(`RSI ${r.toFixed(0)} oversold`);
-  if (r !== null && r > 65) reasons.push(`RSI ${r.toFixed(0)} overbought`);
-  if (bb && bb.pos < 0.2) reasons.push('ispod Bollinger');
-  if (bb && bb.pos > 0.8) reasons.push('iznad Bollinger');
+  if (rangePos < 0.18) reasons.push('blizu 7d dna');
+  else if (rangePos > 0.82) reasons.push('blizu 7d vrha');
+  if (rangePos24 < 0.18) reasons.push('blizu 24h dna');
+  else if (rangePos24 > 0.82) reasons.push('blizu 24h vrha');
+  if (r !== null && r < 32) reasons.push(`RSI ${r.toFixed(0)} oversold`);
+  if (r !== null && r > 68) reasons.push(`RSI ${r.toFixed(0)} overbought`);
+  if (bb && bb.pos < 0.15) reasons.push('ispod Bollinger');
+  if (bb && bb.pos > 0.85) reasons.push('iznad Bollinger');
+  if (quality >= 0.75) reasons.push('čist range');
+  if (confluence >= 3) reasons.push('jak confluence');
 
   return {
-    score, signal, conf, rangePos, rangePos24, rsi: r, bb, atr: atrVal,
-    low7, high7, low24, high24, sma20, distSma,
+    score, signal, conf, quality, rr: Math.round(rr * 100) / 100,
+    rangePos, rangePos24, rsi: r, bb, atr, rangePct,
+    low7, high7, low24, high24, sma20, distSma, confluence,
     entry, sl, tp1, tp2,
     reason: reasons.length ? reasons.join(' · ') : 'neutralno / sredina rangea'
   };
 }
 
 // ═══════════════════════════════════════════════════════════
-// DATA LOADING
+// DATA
 // ═══════════════════════════════════════════════════════════
 async function fetchMarkets() {
-  // Top 100 with sparkline
-  const url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h';
+  const ids = COIN_IDS.join(',');
+  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error('CoinGecko rate limit ili greška (' + res.status + ')');
-  let data = await res.json();
-
-  // Ensure GALA + JASMY
-  const have = new Set(data.map(c => c.id));
-  const missing = EXTRA_IDS.filter(id => !have.has(id));
-  if (missing.length) {
-    try {
-      const extraUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${missing.join(',')}&sparkline=true&price_change_percentage=24h`;
-      const er = await fetch(extraUrl);
-      if (er.ok) {
-        const extras = await er.json();
-        data = data.concat(extras);
-      }
-    } catch(e) {}
-  }
-  return data;
+  if (!res.ok) throw new Error('CoinGecko ' + res.status + ' — pričekaj 30–60s');
+  return await res.json();
 }
 
 async function loadAll() {
@@ -519,54 +498,50 @@ async function loadAll() {
   const status = document.getElementById('statusPill');
   btn.disabled = true;
   btn.textContent = 'Učitavam…';
-  status.textContent = 'analiza u tijeku';
+  status.textContent = 'analiza…';
   status.className = 'pill bg-yellow-900/50 text-yellow-300';
 
   try {
     const raw = await fetchMarkets();
     coins = raw.map(c => {
       const spark = c.sparkline_in_7d?.price || [];
-      const a = analyzeSparkline(spark, c.current_price, c.price_change_percentage_24h || 0);
+      const a = analyzeSparkline(
+        spark, c.current_price, c.price_change_percentage_24h || 0,
+        c.total_volume, c.market_cap
+      );
       const item = {
-        id: c.id,
-        sym: c.symbol.toUpperCase(),
-        name: c.name,
-        price: c.current_price,
-        change24: c.price_change_percentage_24h || 0,
-        mcap: c.market_cap,
-        vol: c.total_volume,
-        high24: c.high_24h,
-        low24: c.low_24h,
-        image: c.image,
-        spark,
-        ...a
+        id: c.id, sym: c.symbol.toUpperCase(), name: c.name,
+        price: c.current_price, change24: c.price_change_percentage_24h || 0,
+        mcap: c.market_cap, vol: c.total_volume,
+        image: c.image, spark, ...a
       };
       latest[item.sym] = item;
       return item;
     });
 
-    // Sort default by score (BUY first)
     coins.sort((a,b) => b.score - a.score);
 
     const buys = coins.filter(c => c.signal === 'BUY');
     const sells = coins.filter(c => c.signal === 'SELL');
+    const high = coins.filter(c => c.conf === 'visoka');
     const best = buys[0];
 
     document.getElementById('statsRow').classList.remove('hidden');
     document.getElementById('statBuy').textContent = buys.length;
     document.getElementById('statSell').textContent = sells.length;
+    document.getElementById('statHigh').textContent = high.length;
     document.getElementById('statBest').textContent = best ? `${best.sym} (${best.score})` : '—';
     document.getElementById('statTime').textContent = new Date().toLocaleTimeString('hr');
 
     let diag = '';
-    if (buys.length >= 5) {
-      diag = `Tržište nudi <b class="text-emerald-400">${buys.length} BUY</b> prilika blizu lokalnih dna. Najjači: <b>${best.sym}</b> (score ${best.score}) — ${best.reason}. Fokus na range, ne na trend.`;
+    if (high.length > 0 && best) {
+      diag = `<b class="text-yellow-400">${high.length} high-conf</b> signala. Najjači BUY: <b>${best.sym}</b> (score ${best.score}, conf ${best.conf}, R:R ${best.rr}) — ${best.reason}.`;
     } else if (buys.length > 0) {
-      diag = `Umjereno. <b class="text-emerald-400">${buys.length} BUY</b> i <b class="text-red-400">${sells.length} SELL</b>. Najbolji BUY: <b>${best.sym}</b> (${best.score}) — ${best.reason}.`;
-    } else if (sells.length > 3) {
-      diag = `Više coinova blizu vrha rangea (<b class="text-red-400">${sells.length} SELL</b>). Manje BUY prilika — čekaj korekcije unutar rangeova.`;
+      diag = `<b class="text-emerald-400">${buys.length} BUY</b> · <b class="text-red-400">${sells.length} SELL</b>. Najbolji: <b>${best.sym}</b> (${best.score}) — ${best.reason}.`;
+    } else if (sells.length > 2) {
+      diag = `Više coinova na vrhu rangea (<b class="text-red-400">${sells.length} SELL</b>). Čekaj korekcije.`;
     } else {
-      diag = `Većina coinova u sredini rangea. Malo ekstremnih BUY/SELL. Strpljenje ili trguj manje pozicije.`;
+      diag = `Većina u sredini rangea ili bez confluence. Manje signala = bolja preciznost. Strpljenje.`;
     }
     document.getElementById('mainDiag').innerHTML = diag;
     status.textContent = 'gotovo';
@@ -580,7 +555,7 @@ async function loadAll() {
     renderPortfolio();
     checkAlerts();
   } catch (e) {
-    document.getElementById('mainDiag').textContent = 'Greška: ' + e.message + '. Pričekaj 30–60s (CoinGecko limit) pa pokušaj ponovo.';
+    document.getElementById('mainDiag').textContent = 'Greška: ' + e.message;
     status.textContent = 'greška';
     status.className = 'pill bg-red-900/40 text-red-300';
   }
@@ -614,796 +589,89 @@ function setTab(id, btn) {
 
 function fmtP(p) {
   if (p == null || isNaN(p)) return 'n/a';
+  if (p < 0.0001) return '$' + p.toPrecision(3);
   if (p < 0.01) return '$' + p.toPrecision(4);
   if (p < 1) return '$' + p.toFixed(4);
+  if (p < 100) return '$' + p.toFixed(3);
   return '$' + p.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 function fmtPct(x) {
   if (x == null) return 'n/a';
-  return (x >= 0 ? '+' : '') + x.toFixed(2) + '%';
+  return (x >= 0 ? '+' : '') + Number(x).toFixed(2) + '%';
 }
 
 function cardHTML(c) {
   const watch = LS.watch();
   const isW = watch.includes(c.sym);
   const sigClass = c.signal === 'BUY' ? 'signal-buy' : c.signal === 'SELL' ? 'signal-sell' : 'signal-hold';
-  const sigColor = c.signal === 'BUY' ? 'text-emerald-400' : c.signal === 'SELL' ? 'text-red-400' : 'text-slate-400';
+  const confClass = c.conf === 'visoka' ? 'conf-high' : '';
   const chColor = c.change24 >= 0 ? 'text-emerald-400' : 'text-red-400';
-  const rangeBar = Math.round(c.rangePos * 100);
 
   return `
-  <div class="card p-3 sm:p-4 ${sigClass} cursor-pointer hover:border-slate-600 transition" onclick="openDetail('${c.sym}')">
+  <div class="card p-3 sm:p-4 ${sigClass} ${confClass} cursor-pointer hover:border-slate-600 transition" onclick="openDetail('${c.sym}')">
     <div class="flex items-start justify-between gap-2">
       <div class="flex items-center gap-2.5 min-w-0">
         <img src="${c.image}" class="w-8 h-8 rounded-full" alt="" onerror="this.style.display='none'">
         <div class="min-w-0">
-          <div class="font-black text-base sm:text-lg truncate">${c.sym} <span class="text-slate-500 font-medium text-xs">${c.name}</span></div>
-          <div class="text-xs text-slate-400">${c.reason}</div>
+          <div class="font-black text-base sm:text-lg truncate">${c.sym}
+            ${c.conf === 'visoka' ? '<span class="text-yellow-400 text-xs ml-1">★HIGH</span>' : ''}
+            <span class="text-slate-500 font-medium text-xs">${c.name}</span>
+          </div>
+          <div class="text-xs text-slate-400 truncate">${c.reason}</div>
         </div>
       </div>
       <div class="text-right shrink-0">
-        <div class="font-black text-base">${fmtP(c.price)}</div>
+        <div class="font-black text-lg">${fmtP(c.price)}</div>
         <div class="text-xs ${chColor}">${fmtPct(c.change24)}</div>
       </div>
     </div>
-    <div class="flex flex-wrap items-center gap-2 mt-2.5">
-      <span class="pill ${c.signal==='BUY'?'bg-emerald-500/20 text-emerald-400':c.signal==='SELL'?'bg-red-500/20 text-red-400':'bg-slate-700 text-slate-400'}">${c.signal} · ${c.score}</span>
-      <span class="pill bg-slate-800 text-slate-300">Range ${rangeBar}%</span>
+    <div class="flex flex-wrap gap-1.5 mt-2.5">
+      <span class="pill ${c.signal==='BUY'?'bg-emerald-900/60 text-emerald-300':c.signal==='SELL'?'bg-red-900/60 text-red-300':'bg-slate-700 text-slate-300'}">${c.signal} · ${c.score}</span>
+      <span class="pill bg-slate-800 text-slate-300">R:R ${c.rr || '—'}</span>
+      <span class="pill bg-slate-800 text-slate-300">Range ${c.rangePct ? c.rangePct.toFixed(0)+'%' : '—'}</span>
       ${c.rsi != null ? `<span class="pill bg-slate-800 text-slate-300">RSI ${c.rsi.toFixed(0)}</span>` : ''}
-      <span class="pill bg-slate-800 text-slate-400">7d ${fmtP(c.low7)}–${fmtP(c.high7)}</span>
+      <span class="pill bg-slate-800 text-slate-400">Conf ${c.confluence || 0}</span>
       <button onclick="event.stopPropagation();toggleWatch('${c.sym}')" class="ml-auto text-lg leading-none ${isW?'text-yellow-400':'text-slate-600 hover:text-yellow-400'}">${isW?'★':'☆'}</button>
     </div>
-    ${c.signal !== 'HOLD' ? `
-    <div class="grid grid-cols-3 gap-1.5 mt-2.5 text-[11px]">
-      <div class="bg-dark-900 rounded-lg p-1.5 text-center"><div class="text-slate-500">Entry</div><div class="font-bold">${fmtP(c.entry)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-1.5 text-center"><div class="text-slate-500">SL</div><div class="font-bold text-red-400">${fmtP(c.sl)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-1.5 text-center"><div class="text-slate-500">TP1</div><div class="font-bold text-emerald-400">${fmtP(c.tp1)}</div></div>
-    </div>` : ''}
+    <div class="grid grid-cols-3 gap-2 mt-2.5 text-center text-xs">
+      <div class="bg-dark-900 rounded-lg py-1.5"><div class="text-slate-500">Entry</div><div class="font-bold">${fmtP(c.entry)}</div></div>
+      <div class="bg-dark-900 rounded-lg py-1.5"><div class="text-slate-500">SL</div><div class="font-bold text-red-400">${fmtP(c.sl)}</div></div>
+      <div class="bg-dark-900 rounded-lg py-1.5"><div class="text-slate-500">TP1</div><div class="font-bold text-emerald-400">${fmtP(c.tp1)}</div></div>
+    </div>
   </div>`;
 }
 
 function renderList() {
-  const sigF = document.getElementById('filterSignal').value;
-  const sortF = document.getElementById('filterSort').value;
+  const sig = document.getElementById('filterSig').value;
+  const sort = document.getElementById('sortBy').value;
   const q = (document.getElementById('searchCoin').value || '').toUpperCase().trim();
 
-  let list = [...coins];
-  if (sigF !== 'all') list = list.filter(c => c.signal === sigF);
+  let list = coins.slice();
+  if (sig === 'HIGH') list = list.filter(c => c.conf === 'visoka');
+  else if (sig !== 'all') list = list.filter(c => c.signal === sig);
   if (q) list = list.filter(c => c.sym.includes(q) || c.name.toUpperCase().includes(q));
 
-  if (sortF === 'score') list.sort((a,b) => b.score - a.score);
-  else if (sortF === 'range') list.sort((a,b) => a.rangePos - b.rangePos);
-  else if (sortF === 'change') list.sort((a,b) => b.change24 - a.change24);
-  else if (sortF === 'mcap') list.sort((a,b) => (b.mcap||0) - (a.mcap||0));
+  if (sort === 'score') list.sort((a,b) => b.score - a.score);
+  else if (sort === 'rr') list.sort((a,b) => (b.rr||0) - (a.rr||0));
+  else if (sort === 'change') list.sort((a,b) => b.change24 - a.change24);
+  else if (sort === 'mcap') list.sort((a,b) => (b.mcap||0) - (a.mcap||0));
+  else if (sort === 'name') list.sort((a,b) => a.sym.localeCompare(b.sym));
 
   document.getElementById('coinList').innerHTML = list.length
     ? list.map(cardHTML).join('')
-    : '<div class="card p-6 text-center text-slate-500">Nema rezultata. Pokreni analizu ili promijeni filter.</div>';
+    : '<div class="text-slate-500 text-sm py-8 text-center">Nema rezultata. Pritisni Analiziraj.</div>';
 }
 
 function renderSignals() {
-  const sigs = coins.filter(c => c.signal !== 'HOLD').sort((a,b) => {
-    if (a.signal === 'BUY' && b.signal !== 'BUY') return -1;
-    if (b.signal === 'BUY' && a.signal !== 'BUY') return 1;
-    return b.score - a.score;
-  });
-  document.getElementById('signalsList').innerHTML = sigs.length
-    ? sigs.map(cardHTML).join('')
-    : '<div class="text-slate-500 text-sm">Nema aktivnih BUY/SELL signala. Analiziraj ponovo.</div>';
-}
-
-function addToWatch() {
-  const sym = document.getElementById('watchInput').value.trim().toUpperCase();
-  if (!sym) return;
-  let w = LS.watch();
-  if (!w.includes(sym)) {
-    w.push(sym);
-    LS.setWatch(w);
-  }
-  document.getElementById('watchInput').value = '';
-  renderWatch();
-}
-
-function toggleWatch(sym) {
-  let w = LS.watch();
-  w = w.includes(sym) ? w.filter(x => x !== sym) : [...w, sym];
-  LS.setWatch(w);
-  renderList();
-  renderWatch();
-  renderSignals();
-}
-
-function renderWatch() {
-  const w = LS.watch();
-  if (!w.length) {
-    document.getElementById('watchList').innerHTML = '<div class="card p-6 text-center text-slate-500">Nema favorita. Upiši coin gore.</div>';
-    return;
-  }
-  const analyzed = coins.filter(c => w.includes(c.sym));
-  const others = w.filter(s => !analyzed.find(c => c.sym === s));
-  let html = analyzed.map(cardHTML).join('');
-  html += others.map(s => `
-    <div class="card p-3 flex justify-between items-center">
-      <b>${s}</b>
-      <button onclick="toggleWatch('${s}')" class="text-yellow-400 text-xl">★</button>
-    </div>
-  `).join('');
-  document.getElementById('watchList').innerHTML = html;
-}
-
-// ═══════════════════════════════════════════════════════════
-// DETAIL + CHART
-// ═══════════════════════════════════════════════════════════
-function openDetail(sym) {
-  const c = latest[sym];
-  if (!c) return;
-  detailCoin = c;
-  document.getElementById('dTitle').textContent = `${c.sym} · ${c.signal} (${c.score})`;
-  document.getElementById('dSub').textContent = c.name + ' · ' + c.reason;
-  document.getElementById('dBody').innerHTML = `
-    <div class="grid grid-cols-2 gap-2">
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Cijena</div><div class="font-bold">${fmtP(c.price)}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">24h</div><div class="font-bold ${c.change24>=0?'text-emerald-400':'text-red-400'}">${fmtPct(c.change24)}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">7d Range pozicija</div><div class="font-bold">${(c.rangePos*100).toFixed(0)}% (0=dno)</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">RSI</div><div class="font-bold">${c.rsi != null ? c.rsi.toFixed(1) : 'n/a'}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">7d Low / High</div><div class="font-bold text-xs">${fmtP(c.low7)} / ${fmtP(c.high7)}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">ATR (approx)</div><div class="font-bold">${fmtP(c.atr)}</div></div>
-    </div>
-    ${c.signal !== 'HOLD' ? `
-    <div class="mt-2 p-3 rounded-xl bg-dark-900 border border-slate-700">
-      <div class="text-xs text-slate-400 mb-1">Trade plan</div>
-      <div class="grid grid-cols-3 gap-2 text-center">
-        <div><div class="text-[10px] text-slate-500">Entry</div><div class="font-black">${fmtP(c.entry)}</div></div>
-        <div><div class="text-[10px] text-slate-500">Stop Loss</div><div class="font-black text-red-400">${fmtP(c.sl)}</div></div>
-        <div><div class="text-[10px] text-slate-500">TP1 / TP2</div><div class="font-black text-emerald-400">${fmtP(c.tp1)} / ${fmtP(c.tp2)}</div></div>
-      </div>
-    </div>` : ''}
-  `;
-  document.getElementById('detailModal').classList.remove('hidden');
-  document.getElementById('detailModal').classList.add('flex');
-
-  // Chart
-  const ctx = document.getElementById('dChart').getContext('2d');
-  if (chartInstance) chartInstance.destroy();
-  const prices = c.spark || [];
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: prices.map((_,i)=>i),
-      datasets: [{
-        data: prices,
-        borderColor: c.signal === 'BUY' ? '#22c55e' : c.signal === 'SELL' ? '#ef4444' : '#38bdf8',
-        borderWidth: 2,
-        pointRadius: 0,
-        fill: { target: 'origin', above: 'rgba(34,197,94,0.06)', below: 'rgba(239,68,68,0.06)' },
-        tension: 0.2
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { display: false },
-        y: { display: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } } }
-      }
-    }
-  });
-}
-
-function closeDetail() {
-  document.getElementById('detailModal').classList.add('hidden');
-  document.getElementById('detailModal').classList.remove('flex');
-  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
-}
-
-// ═══════════════════════════════════════════════════════════
-// PAPER SIM
-// ═══════════════════════════════════════════════════════════
-function renderSim() {
-  const s = LS.sim();
-  document.getElementById('simCapital').textContent = fmtP(s.capital);
-  document.getElementById('simEquity').textContent = fmtP(s.equity);
-  const open = s.trades.filter(t => t.status === 'open');
-  document.getElementById('simOpen').textContent = open.length;
-  const pl = s.equity - s.capital;
-  const plEl = document.getElementById('simPL');
-  plEl.textContent = (pl>=0?'+':'') + fmtP(pl);
-  plEl.className = 'font-black ' + (pl>=0 ? 'text-emerald-400' : 'text-red-400');
-
-  // Update open trades with current prices
-  let html = '';
-  s.trades.slice().reverse().forEach(t => {
-    const cur = latest[t.sym]?.price;
-    let upl = 0;
-    if (t.status === 'open' && cur) {
-      upl = t.side === 'BUY' ? (cur - t.entry) * t.qty : (t.entry - cur) * t.qty;
-    }
-    const plShow = t.status === 'open' ? upl : t.realized;
-    html += `<div class="bg-dark-900 rounded-xl p-2.5 flex justify-between items-center gap-2">
-      <div>
-        <span class="font-bold">${t.sym}</span>
-        <span class="text-xs ${t.side==='BUY'?'text-emerald-400':'text-red-400'}">${t.side}</span>
-        <span class="text-xs text-slate-500">${t.status}</span>
-        <div class="text-[11px] text-slate-400">${fmtP(t.entry)} → SL ${fmtP(t.sl)} · TP ${fmtP(t.tp)}</div>
-      </div>
-      <div class="text-right">
-        <div class="font-bold ${plShow>=0?'text-emerald-400':'text-red-400'}">${(plShow>=0?'+':'')+fmtP(plShow)}</div>
-        ${t.status==='open' ? `<button onclick="simClose('${t.id}')" class="text-[10px] text-slate-400 underline">Zatvori</button>` : ''}
-      </div>
-    </div>`;
-  });
-  document.getElementById('simTrades').innerHTML = html || '<div class="text-slate-500 text-sm">Nema tradeova. Koristi Auto-trguj ili Paper BUY/SELL u detaljima.</div>';
-}
-
-function simReset() {
-  if (!confirm('Resetirati simulator na $10,000?')) return;
-  LS.setSim({ capital: 10000, equity: 10000, trades: [] });
-  renderSim();
-}
-
-function simOpen(sym, side) {
-  const c = latest[sym];
-  if (!c) return;
-  const s = LS.sim();
-  const riskPct = 0.015; // 1.5% risk
-  const riskAmt = s.equity * riskPct;
-  const entry = c.price;
-  const sl = side === 'BUY' ? c.sl : c.sl;
-  const tp = side === 'BUY' ? c.tp1 : c.tp1;
-  const riskPerUnit = Math.abs(entry - sl) || entry * 0.02;
-  const qty = riskAmt / riskPerUnit;
-  const notional = qty * entry;
-  if (notional > s.equity * 0.25) {
-    alert('Pozicija prevelika, smanji risk.');
-    return;
-  }
-  s.trades.push({
-    id: Date.now().toString(36),
-    sym, side, entry, sl, tp, qty,
-    status: 'open',
-    opened: Date.now(),
-    realized: 0
-  });
-  LS.setSim(s);
-  renderSim();
-  closeDetail();
-}
-
-function simOpenFromDetail(side) {
-  if (!detailCoin) return;
-  simOpen(detailCoin.sym, side);
-}
-
-function simClose(id) {
-  const s = LS.sim();
-  const t = s.trades.find(x => x.id === id);
-  if (!t || t.status !== 'open') return;
-  const cur = latest[t.sym]?.price || t.entry;
-  const pl = t.side === 'BUY' ? (cur - t.entry) * t.qty : (t.entry - cur) * t.qty;
-  t.status = 'closed';
-  t.realized = pl;
-  t.closed = Date.now();
-  s.equity += pl;
-  LS.setSim(s);
-  renderSim();
-}
-
-function simAutoTrade() {
-  const buys = coins.filter(c => c.signal === 'BUY' && c.score >= 75).slice(0, 3);
-  if (!buys.length) {
-    alert('Nema dovoljno jakih BUY signala (score ≥ 75).');
-    return;
-  }
-  buys.forEach(c => {
-    const s = LS.sim();
-    const already = s.trades.some(t => t.sym === c.sym && t.status === 'open');
-    if (!already) simOpen(c.sym, 'BUY');
-  });
-  alert(`Otvoreno do ${buys.length} paper BUY pozicija na najjačim signalima.`);
-  renderSim();
-}
-
-// ═══════════════════════════════════════════════════════════
-// PORTFOLIO
-// ═══════════════════════════════════════════════════════════
-function pfAdd() {
-  const sym = document.getElementById('pfCoin').value.trim().toUpperCase();
-  const amount = Number(document.getElementById('pfAmount').value);
-  const entry = Number(document.getElementById('pfEntry').value) || 0;
-  if (!sym || !amount) return;
-  let arr = LS.pf().filter(x => x.coin !== sym);
-  arr.push({ coin: sym, amount, entry });
-  LS.setPf(arr);
-  document.getElementById('pfCoin').value = '';
-  document.getElementById('pfAmount').value = '';
-  document.getElementById('pfEntry').value = '';
-  renderPortfolio();
-}
-
-function renderPortfolio() {
-  const arr = LS.pf();
-  if (!arr.length) {
-    document.getElementById('pfList').innerHTML = '<div class="text-slate-500 text-sm">Nema pozicija.</div>';
-    return;
-  }
-  let total = 0, cost = 0, html = '';
-  arr.forEach(x => {
-    const p = latest[x.coin]?.price || x.entry;
-    const v = x.amount * p;
-    const c = x.amount * x.entry;
-    const pl = v - c;
-    total += v; cost += c;
-    html += `<div class="bg-dark-900 rounded-xl p-2.5 flex justify-between">
-      <div><b>${x.coin}</b> · ${x.amount} × ${fmtP(p)}</div>
-      <div class="${pl>=0?'text-emerald-400':'text-red-400'} font-bold">${fmtP(v)} · ${pl>=0?'+':''}${fmtP(pl)}</div>
-    </div>`;
-  });
-  html += `<div class="pt-2 font-bold">Ukupno: ${fmtP(total)} · P/L <span class="${total-cost>=0?'text-emerald-400':'text-red-400'}">${fmtP(total-cost)}</span></div>`;
-  document.getElementById('pfList').innerHTML = html;
-}
-
-// ═══════════════════════════════════════════════════════════
-// ALERTS
-// ═══════════════════════════════════════════════════════════
-function saveAlert() {
-  const a = {
-    coin: document.getElementById('aCoin').value,
-    below: Number(document.getElementById('aBelow').value) || null,
-    score: Number(document.getElementById('aScore').value) || null
-  };
-  LS.setAlert(a);
-  loadAlertUI();
-  checkAlerts();
-}
-
-function loadAlertUI() {
-  const a = LS.alert();
-  if (!a) { document.getElementById('alertText').textContent = 'Nema alertova.'; return; }
-  document.getElementById('alertText').innerHTML = `Alert: <b>${a.coin}</b>${a.below ? ` ispod ${a.below}` : ''}${a.score ? ` · BUY score ≥ ${a.score}` : ''}`;
-}
-
-function checkAlerts() {
-  const a = LS.alert();
-  if (!a) return;
-  const c = latest[a.coin];
-  if (!c) return;
-  let msg = [];
-  if (a.below && c.price <= a.below) msg.push(`${a.coin} ispod ${a.below}!`);
-  if (a.score && c.score >= a.score && c.signal === 'BUY') msg.push(`${a.coin} BUY score ${c.score}!`);
-  if (msg.length) {
-    document.getElementById('alertText').innerHTML = `<span class="text-yellow-400 font-bold">🔔 ${msg.join(' · ')}</span>`;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO REFRESH
-// ═══════════════════════════════════════════════════════════
-function toggleAuto() {
-  const btn = document.getElementById('btnAuto');
-  if (autoTimer) {
-    clearInterval(autoTimer);
-    autoTimer = null;
-    btn.textContent = '🔄 Auto OFF';
-  } else {
-    autoTimer = setInterval(loadAll, 90 * 1000); // 90s to respect rate limits
-    btn.textContent = '🔄 Auto ON';
-    loadAll();
-  }
-}
-
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  toggleAuto();
-});</script>
-</body>
-</html>
-
-<section id="sec-alerts" class="hidden">
-  <div class="card p-4">
-    <h3 class="font-bold mb-2">🚨 Alerti (lokalno)</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-      <input id="aCoin" type="text" placeholder="Coin (BTC, ETH...)" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm uppercase">
-      <input id="aBelow" type="number" placeholder="Cijena ispod" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-      <input id="aScore" type="number" placeholder="BUY score iznad" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-    </div>
-    <button onclick="saveAlert()" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-emerald-600 font-bold text-sm mb-3">Spremi alert</button>
-    <div id="alertText" class="text-sm text-slate-300"></div>
-  </div>
-</section>
- 
-  <!-- DETAIL MODAL -->
-  <div id="detailModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 p-3" onclick="if(event.target===this)closeDetail()">
-    <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-4">
-      <div class="flex justify-between items-start mb-3">
-        <div>
-          <h3 id="dTitle" class="text-xl font-black"></h3>
-          <p id="dSub" class="text-sm text-slate-400"></p>
-        </div>
-        <button onclick="closeDetail()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
-      </div>
-      <canvas id="dChart" height="160" class="mb-3 rounded-xl bg-dark-900"></canvas>
-      <div id="dBody" class="text-sm space-y-2"></div>
-      <div class="flex gap-2 mt-4">
-        <button id="dBuyBtn" onclick="simOpenFromDetail('BUY')" class="flex-1 py-2.5 rounded-xl bg-emerald-600 font-bold text-sm">Paper BUY</button>
-        <button id="dSellBtn" onclick="simOpenFromDetail('SELL')" class="flex-1 py-2.5 rounded-xl bg-red-600 font-bold text-sm">Paper SELL</button>
-      </div>
-    </div>
-  </div>
-
-</main>
-
-<footer class="text-center text-xs text-slate-600 py-6">Doktor Kripta v2 · Range / Mean-reversion · CoinGecko · Nije financijski savjet</footer>
-
-<script>
-// ═══════════════════════════════════════════════════════════
-// CONFIG & STATE
-// ═══════════════════════════════════════════════════════════
-const EXTRA_IDS = ['gala', 'jasmycoin'];
-let coins = [];          // analyzed array
-let latest = {};         // symbol -> data
-let autoTimer = null;
-let chartInstance = null;
-let detailCoin = null;
-
-const LS = {
-  watch: () => JSON.parse(localStorage.getItem('dk2_watch') || '[]'),
-  setWatch: v => localStorage.setItem('dk2_watch', JSON.stringify(v)),
-  pf: () => JSON.parse(localStorage.getItem('dk2_pf') || '[]'),
-  setPf: v => localStorage.setItem('dk2_pf', JSON.stringify(v)),
-  alert: () => JSON.parse(localStorage.getItem('dk2_alert') || 'null'),
-  setAlert: v => localStorage.setItem('dk2_alert', JSON.stringify(v)),
-  sim: () => JSON.parse(localStorage.getItem('dk2_sim') || JSON.stringify({ capital: 10000, equity: 10000, trades: [] })),
-  setSim: v => localStorage.setItem('dk2_sim', JSON.stringify(v)),
-};
-
-// ═══════════════════════════════════════════════════════════
-// TECH INDICATORS
-// ═══════════════════════════════════════════════════════════
-function sma(arr, n) {
-  if (!arr || arr.length < n) return null;
-  return arr.slice(-n).reduce((a,b)=>a+b,0) / n;
-}
-function stdev(arr) {
-  if (!arr || arr.length < 2) return 0;
-  const m = arr.reduce((a,b)=>a+b,0) / arr.length;
-  return Math.sqrt(arr.reduce((a,b)=>a+(b-m)*(b-m),0) / arr.length);
-}
-function rsi(prices, period=14) {
-  if (!prices || prices.length < period+1) return null;
-  let gains=0, losses=0;
-  for (let i = prices.length-period; i < prices.length; i++) {
-    const d = prices[i] - prices[i-1];
-    if (d >= 0) gains += d; else losses -= d;
-  }
-  if (losses === 0) return 100;
-  const rs = (gains/period) / (losses/period);
-  return 100 - (100 / (1+rs));
-}
-function atrApprox(prices, n=14) {
-  if (!prices || prices.length < n+1) return null;
-  const moves = [];
-  for (let i=1; i<prices.length; i++) moves.push(Math.abs(prices[i]-prices[i-1]));
-  return sma(moves.slice(-n), n);
-}
-function bollinger(prices, n=20) {
-  if (!prices || prices.length < n) return null;
-  const slice = prices.slice(-n);
-  const mid = sma(slice, n);
-  const sd = stdev(slice);
-  const low = mid - 2*sd, high = mid + 2*sd;
-  const last = prices.at(-1);
-  const pos = (high-low) > 0 ? (last-low)/(high-low) : 0.5;
-  return { mid, low, high, pos };
-}
-
-// ═══════════════════════════════════════════════════════════
-// RANGE / MEAN-REVERSION SCORING
-// ═══════════════════════════════════════════════════════════
-function analyzeSparkline(spark, price, change24h) {
-  // spark = array of ~168 hourly prices (7d)
-  if (!spark || spark.length < 24) {
-    return { score: 50, signal: 'HOLD', rangePos: 0.5, rsi: null, reason: 'Nedovoljno podataka' };
-  }
-  const prices = spark.map(Number);
-  const last = price || prices.at(-1);
-  const low7 = Math.min(...prices);
-  const high7 = Math.max(...prices);
-  const range = high7 - low7 || 1;
-  const rangePos = (last - low7) / range; // 0=bottom, 1=top
-
-  // last 24 points ~1d
-  const day = prices.slice(-24);
-  const low24 = Math.min(...day);
-  const high24 = Math.max(...day);
-  const range24 = high24 - low24 || 1;
-  const rangePos24 = (last - low24) / range24;
-
-  const r = rsi(prices, 14);
-  const bb = bollinger(prices, 20);
-  const atr = atrApprox(prices, 14);
-  const sma20 = sma(prices, 20);
-  const distSma = sma20 ? ((last - sma20) / sma20) * 100 : 0;
-
-  // MEAN-REVERSION SCORE (0-100)
-  // High score = strong BUY opportunity (near bottom of range)
-  // Low score = strong SELL opportunity (near top)
-  let score = 50;
-
-  // Primary: 7d range position (most weight)
-  // Invert: bottom = high score
-  score += (0.5 - rangePos) * 50; // ±25
-
-  // 24h range
-  score += (0.5 - rangePos24) * 20; // ±10
-
-  // RSI: oversold boosts buy, overbought lowers
-  if (r !== null) {
-    if (r < 30) score += 18;
-    else if (r < 40) score += 10;
-    else if (r > 70) score -= 18;
-    else if (r > 60) score -= 10;
-  }
-
-  // Bollinger
-  if (bb) {
-    if (bb.pos < 0.15) score += 12;
-    else if (bb.pos < 0.3) score += 6;
-    else if (bb.pos > 0.85) score -= 12;
-    else if (bb.pos > 0.7) score -= 6;
-  }
-
-  // Mild mean-reversion on SMA
-  if (distSma < -3) score += 5;
-  else if (distSma > 3) score -= 5;
-
-  // Don't fight strong 24h momentum too hard (small penalty)
-  if (change24h < -8) score -= 4;
-  if (change24h > 8) score += 4;
-
-  score = Math.max(0, Math.min(100, Math.round(score)));
-
-  let signal = 'HOLD';
-  let conf = 'niska';
-  if (score >= 72) { signal = 'BUY'; conf = score >= 82 ? 'visoka' : 'srednja'; }
-  else if (score <= 28) { signal = 'SELL'; conf = score <= 18 ? 'visoka' : 'srednja'; }
-
-  // Targets based on range + ATR
-  const atrVal = atr || range * 0.02;
-  let entry = last, sl, tp1, tp2;
-  if (signal === 'BUY') {
-    sl = Math.max(low7 * 0.995, last - atrVal * 1.4);
-    tp1 = last + (last - sl) * 1.5;
-    tp2 = Math.min(high7 * 0.98, last + (last - sl) * 2.5);
-  } else if (signal === 'SELL') {
-    sl = Math.min(high7 * 1.005, last + atrVal * 1.4);
-    tp1 = last - (sl - last) * 1.5;
-    tp2 = Math.max(low7 * 1.02, last - (sl - last) * 2.5);
-  } else {
-    sl = last - atrVal * 1.5;
-    tp1 = last + atrVal * 1.5;
-    tp2 = last + atrVal * 2.5;
-  }
-
-  const reasons = [];
-  if (rangePos < 0.22) reasons.push('blizu 7d dna');
-  else if (rangePos > 0.78) reasons.push('blizu 7d vrha');
-  if (rangePos24 < 0.2) reasons.push('blizu 24h dna');
-  else if (rangePos24 > 0.8) reasons.push('blizu 24h vrha');
-  if (r !== null && r < 35) reasons.push(`RSI ${r.toFixed(0)} oversold`);
-  if (r !== null && r > 65) reasons.push(`RSI ${r.toFixed(0)} overbought`);
-  if (bb && bb.pos < 0.2) reasons.push('ispod Bollinger');
-  if (bb && bb.pos > 0.8) reasons.push('iznad Bollinger');
-
-  return {
-    score, signal, conf, rangePos, rangePos24, rsi: r, bb, atr: atrVal,
-    low7, high7, low24, high24, sma20, distSma,
-    entry, sl, tp1, tp2,
-    reason: reasons.length ? reasons.join(' · ') : 'neutralno / sredina rangea'
-  };
-}
-
-// ═══════════════════════════════════════════════════════════
-// DATA LOADING
-// ═══════════════════════════════════════════════════════════
-async function fetchMarkets() {
-  // Top 100 with sparkline
-  const url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=24h';
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('CoinGecko rate limit ili greška (' + res.status + ')');
-  let data = await res.json();
-
-  // Ensure GALA + JASMY
-  const have = new Set(data.map(c => c.id));
-  const missing = EXTRA_IDS.filter(id => !have.has(id));
-  if (missing.length) {
-    try {
-      const extraUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${missing.join(',')}&sparkline=true&price_change_percentage=24h`;
-      const er = await fetch(extraUrl);
-      if (er.ok) {
-        const extras = await er.json();
-        data = data.concat(extras);
-      }
-    } catch(e) {}
-  }
-  return data;
-}
-
-async function loadAll() {
-  const btn = document.getElementById('btnAnalyze');
-  const status = document.getElementById('statusPill');
-  btn.disabled = true;
-  btn.textContent = 'Učitavam…';
-  status.textContent = 'analiza u tijeku';
-  status.className = 'pill bg-yellow-900/50 text-yellow-300';
-
-  try {
-    const raw = await fetchMarkets();
-    coins = raw.map(c => {
-      const spark = c.sparkline_in_7d?.price || [];
-      const a = analyzeSparkline(spark, c.current_price, c.price_change_percentage_24h || 0);
-      const item = {
-        id: c.id,
-        sym: c.symbol.toUpperCase(),
-        name: c.name,
-        price: c.current_price,
-        change24: c.price_change_percentage_24h || 0,
-        mcap: c.market_cap,
-        vol: c.total_volume,
-        high24: c.high_24h,
-        low24: c.low_24h,
-        image: c.image,
-        spark,
-        ...a
-      };
-      latest[item.sym] = item;
-      return item;
+  const active = coins.filter(c => c.signal === 'BUY' || c.signal === 'SELL')
+    .sort((a,b) => {
+      if (a.conf === 'visoka' && b.conf !== 'visoka') return -1;
+      if (b.conf === 'visoka' && a.conf !== 'visoka') return 1;
+      return b.score - a.score;
     });
-
-    // Sort default by score (BUY first)
-    coins.sort((a,b) => b.score - a.score);
-
-    const buys = coins.filter(c => c.signal === 'BUY');
-    const sells = coins.filter(c => c.signal === 'SELL');
-    const best = buys[0];
-
-    document.getElementById('statsRow').classList.remove('hidden');
-    document.getElementById('statBuy').textContent = buys.length;
-    document.getElementById('statSell').textContent = sells.length;
-    document.getElementById('statBest').textContent = best ? `${best.sym} (${best.score})` : '—';
-    document.getElementById('statTime').textContent = new Date().toLocaleTimeString('hr');
-
-    let diag = '';
-    if (buys.length >= 5) {
-      diag = `Tržište nudi <b class="text-emerald-400">${buys.length} BUY</b> prilika blizu lokalnih dna. Najjači: <b>${best.sym}</b> (score ${best.score}) — ${best.reason}. Fokus na range, ne na trend.`;
-    } else if (buys.length > 0) {
-      diag = `Umjereno. <b class="text-emerald-400">${buys.length} BUY</b> i <b class="text-red-400">${sells.length} SELL</b>. Najbolji BUY: <b>${best.sym}</b> (${best.score}) — ${best.reason}.`;
-    } else if (sells.length > 3) {
-      diag = `Više coinova blizu vrha rangea (<b class="text-red-400">${sells.length} SELL</b>). Manje BUY prilika — čekaj korekcije unutar rangeova.`;
-    } else {
-      diag = `Većina coinova u sredini rangea. Malo ekstremnih BUY/SELL. Strpljenje ili trguj manje pozicije.`;
-    }
-    document.getElementById('mainDiag').innerHTML = diag;
-    status.textContent = 'gotovo';
-    status.className = 'pill bg-emerald-900/40 text-emerald-300';
-
-    fillSelects();
-    renderList();
-    renderSignals();
-    renderWatch();
-    renderSim();
-    renderPortfolio();
-    checkAlerts();
-  } catch (e) {
-    document.getElementById('mainDiag').textContent = 'Greška: ' + e.message + '. Pričekaj 30–60s (CoinGecko limit) pa pokušaj ponovo.';
-    status.textContent = 'greška';
-    status.className = 'pill bg-red-900/40 text-red-300';
-  }
-  btn.disabled = false;
-  btn.textContent = '⚡ Analiziraj';
-}
-
-function fillSelects() {
-  const opts = coins.map(c => `<option value="${c.sym}">${c.sym}</option>`).join('');
-  ['pfCoin','aCoin'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = opts;
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════
-function setTab(id, btn) {
-  ['market','signals','watch','sim','portfolio','alerts'].forEach(t => {
-    document.getElementById('sec-'+t).classList.toggle('hidden', t !== id);
-  });
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  if (id === 'watch') renderWatch();
-  if (id === 'sim') renderSim();
-  if (id === 'portfolio') renderPortfolio();
-  if (id === 'signals') renderSignals();
-  if (id === 'alerts') loadAlertUI();
-}
-
-function fmtP(p) {
-  if (p == null || isNaN(p)) return 'n/a';
-  if (p < 0.01) return '$' + p.toPrecision(4);
-  if (p < 1) return '$' + p.toFixed(4);
-  return '$' + p.toLocaleString('en-US', { maximumFractionDigits: 2 });
-}
-function fmtPct(x) {
-  if (x == null) return 'n/a';
-  return (x >= 0 ? '+' : '') + x.toFixed(2) + '%';
-}
-
-function cardHTML(c) {
-  const watch = LS.watch();
-  const isW = watch.includes(c.sym);
-  const sigClass = c.signal === 'BUY' ? 'signal-buy' : c.signal === 'SELL' ? 'signal-sell' : 'signal-hold';
-  const sigColor = c.signal === 'BUY' ? 'text-emerald-400' : c.signal === 'SELL' ? 'text-red-400' : 'text-slate-400';
-  const chColor = c.change24 >= 0 ? 'text-emerald-400' : 'text-red-400';
-  const rangeBar = Math.round(c.rangePos * 100);
-
-  return `
-  <div class="card p-3 sm:p-4 ${sigClass} cursor-pointer hover:border-slate-600 transition" onclick="openDetail('${c.sym}')">
-    <div class="flex items-start justify-between gap-2">
-      <div class="flex items-center gap-2.5 min-w-0">
-        <img src="${c.image}" class="w-8 h-8 rounded-full" alt="" onerror="this.style.display='none'">
-        <div class="min-w-0">
-          <div class="font-black text-base sm:text-lg truncate">${c.sym} <span class="text-slate-500 font-medium text-xs">${c.name}</span></div>
-          <div class="text-xs text-slate-400">${c.reason}</div>
-        </div>
-      </div>
-      <div class="text-right shrink-0">
-        <div class="font-black text-base">${fmtP(c.price)}</div>
-        <div class="text-xs ${chColor}">${fmtPct(c.change24)}</div>
-      </div>
-    </div>
-    <div class="flex flex-wrap items-center gap-2 mt-2.5">
-      <span class="pill ${c.signal==='BUY'?'bg-emerald-500/20 text-emerald-400':c.signal==='SELL'?'bg-red-500/20 text-red-400':'bg-slate-700 text-slate-400'}">${c.signal} · ${c.score}</span>
-      <span class="pill bg-slate-800 text-slate-300">Range ${rangeBar}%</span>
-      ${c.rsi != null ? `<span class="pill bg-slate-800 text-slate-300">RSI ${c.rsi.toFixed(0)}</span>` : ''}
-      <span class="pill bg-slate-800 text-slate-400">7d ${fmtP(c.low7)}–${fmtP(c.high7)}</span>
-      <button onclick="event.stopPropagation();toggleWatch('${c.sym}')" class="ml-auto text-lg leading-none ${isW?'text-yellow-400':'text-slate-600 hover:text-yellow-400'}">${isW?'★':'☆'}</button>
-    </div>
-    ${c.signal !== 'HOLD' ? `
-    <div class="grid grid-cols-3 gap-1.5 mt-2.5 text-[11px]">
-      <div class="bg-dark-900 rounded-lg p-1.5 text-center"><div class="text-slate-500">Entry</div><div class="font-bold">${fmtP(c.entry)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-1.5 text-center"><div class="text-slate-500">SL</div><div class="font-bold text-red-400">${fmtP(c.sl)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-1.5 text-center"><div class="text-slate-500">TP1</div><div class="font-bold text-emerald-400">${fmtP(c.tp1)}</div></div>
-    </div>` : ''}
-  </div>`;
-}
-
-function renderList() {
-  const sigF = document.getElementById('filterSignal').value;
-  const sortF = document.getElementById('filterSort').value;
-  const q = (document.getElementById('searchCoin').value || '').toUpperCase().trim();
-
-  let list = [...coins];
-  if (sigF !== 'all') list = list.filter(c => c.signal === sigF);
-  if (q) list = list.filter(c => c.sym.includes(q) || c.name.toUpperCase().includes(q));
-
-  if (sortF === 'score') list.sort((a,b) => b.score - a.score);
-  else if (sortF === 'range') list.sort((a,b) => a.rangePos - b.rangePos);
-  else if (sortF === 'change') list.sort((a,b) => b.change24 - a.change24);
-  else if (sortF === 'mcap') list.sort((a,b) => (b.mcap||0) - (a.mcap||0));
-
-  document.getElementById('coinList').innerHTML = list.length
-    ? list.map(cardHTML).join('')
-    : '<div class="card p-6 text-center text-slate-500">Nema rezultata. Pokreni analizu ili promijeni filter.</div>';
-}
-
-function renderSignals() {
-  const sigs = coins.filter(c => c.signal !== 'HOLD').sort((a,b) => {
-    if (a.signal === 'BUY' && b.signal !== 'BUY') return -1;
-    if (b.signal === 'BUY' && a.signal !== 'BUY') return 1;
-    return b.score - a.score;
-  });
-  document.getElementById('signalsList').innerHTML = sigs.length
-    ? sigs.map(cardHTML).join('')
-    : '<div class="text-slate-500 text-sm">Nema aktivnih BUY/SELL signala. Analiziraj ponovo.</div>';
+  document.getElementById('signalList').innerHTML = active.length
+    ? active.map(cardHTML).join('')
+    : '<div class="text-slate-500 text-sm py-6 text-center">Nema aktivnih signala (stroži filteri = manje, ali kvalitetnije).</div>';
 }
 
 function renderWatch() {
@@ -1411,62 +679,56 @@ function renderWatch() {
   const list = coins.filter(c => w.includes(c.sym));
   document.getElementById('watchList').innerHTML = list.length
     ? list.map(cardHTML).join('')
-    : '<div class="card p-6 text-center text-slate-500">Nema favorita. Stisni ☆ na coin.</div>';
+    : '<div class="text-slate-500 text-sm py-6 text-center">Watchlist prazan.</div>';
 }
 
 function toggleWatch(sym) {
   let w = LS.watch();
-  w = w.includes(sym) ? w.filter(x => x !== sym) : [...w, sym];
+  if (w.includes(sym)) w = w.filter(x => x !== sym);
+  else w.push(sym);
   LS.setWatch(w);
-  renderList();
-  renderWatch();
-  renderSignals();
+  renderList(); renderSignals(); renderWatch();
 }
 
 // ═══════════════════════════════════════════════════════════
-// DETAIL + CHART
+// DETAIL
 // ═══════════════════════════════════════════════════════════
 function openDetail(sym) {
   const c = latest[sym];
   if (!c) return;
   detailCoin = c;
-  document.getElementById('dTitle').textContent = `${c.sym} · ${c.signal} (${c.score})`;
-  document.getElementById('dSub').textContent = c.name + ' · ' + c.reason;
+  document.getElementById('dTitle').textContent = `${c.sym} · ${c.name}`;
+  document.getElementById('dSub').textContent = `${c.signal} ${c.score} · conf ${c.conf} · confluence ${c.confluence}`;
   document.getElementById('dBody').innerHTML = `
     <div class="grid grid-cols-2 gap-2">
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Cijena</div><div class="font-bold">${fmtP(c.price)}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">24h</div><div class="font-bold ${c.change24>=0?'text-emerald-400':'text-red-400'}">${fmtPct(c.change24)}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">7d Range pozicija</div><div class="font-bold">${(c.rangePos*100).toFixed(0)}% (0=dno)</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">RSI</div><div class="font-bold">${c.rsi != null ? c.rsi.toFixed(1) : 'n/a'}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">7d Low / High</div><div class="font-bold text-xs">${fmtP(c.low7)} / ${fmtP(c.high7)}</div></div>
-      <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">ATR (approx)</div><div class="font-bold">${fmtP(c.atr)}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Cijena</div><div class="font-bold">${fmtP(c.price)}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">24h</div><div class="font-bold ${c.change24>=0?'text-emerald-400':'text-red-400'}">${fmtPct(c.change24)}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">7d range</div><div class="font-bold">${fmtP(c.low7)} – ${fmtP(c.high7)}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Range %</div><div class="font-bold">${c.rangePct?.toFixed(1) || '—'}%</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">RSI</div><div class="font-bold">${c.rsi != null ? c.rsi.toFixed(1) : '—'}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Quality</div><div class="font-bold">${(c.quality*100).toFixed(0)}%</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">R:R (TP1)</div><div class="font-bold text-emerald-400">${c.rr || '—'}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Confluence</div><div class="font-bold">${c.confluence}/4</div></div>
     </div>
-    ${c.signal !== 'HOLD' ? `
-    <div class="mt-2 p-3 rounded-xl bg-dark-900 border border-slate-700">
-      <div class="text-xs text-slate-400 mb-1">Trade plan</div>
-      <div class="grid grid-cols-3 gap-2 text-center">
-        <div><div class="text-[10px] text-slate-500">Entry</div><div class="font-black">${fmtP(c.entry)}</div></div>
-        <div><div class="text-[10px] text-slate-500">Stop Loss</div><div class="font-black text-red-400">${fmtP(c.sl)}</div></div>
-        <div><div class="text-[10px] text-slate-500">TP1 / TP2</div><div class="font-black text-emerald-400">${fmtP(c.tp1)} / ${fmtP(c.tp2)}</div></div>
-      </div>
-    </div>` : ''}
+    <div class="mt-2 text-xs text-slate-400">Entry ${fmtP(c.entry)} · SL ${fmtP(c.sl)} · TP1 ${fmtP(c.tp1)} · TP2 ${fmtP(c.tp2)}</div>
+    <div class="mt-1 text-xs text-slate-500">${c.reason}</div>
   `;
-  document.getElementById('detailModal').classList.remove('hidden');
-  document.getElementById('detailModal').classList.add('flex');
 
-  // Chart
+  const modal = document.getElementById('detailModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
   const ctx = document.getElementById('dChart').getContext('2d');
-  if (chartInstance) chartInstance.destroy();
-  const prices = c.spark || [];
+  const data = (c.spark || []).map(Number);
   chartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: prices.map((_,i)=>i),
+      labels: data.map((_,i)=>i),
       datasets: [{
-        data: prices,
+        data,
         borderColor: c.signal === 'BUY' ? '#22c55e' : c.signal === 'SELL' ? '#ef4444' : '#38bdf8',
-        borderWidth: 2,
-        pointRadius: 0,
+        borderWidth: 2, pointRadius: 0,
         fill: { target: 'origin', above: 'rgba(34,197,94,0.06)', below: 'rgba(239,68,68,0.06)' },
         tension: 0.2
       }]
@@ -1486,6 +748,7 @@ function closeDetail() {
   document.getElementById('detailModal').classList.add('hidden');
   document.getElementById('detailModal').classList.remove('flex');
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  detailCoin = null;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1493,16 +756,48 @@ function closeDetail() {
 // ═══════════════════════════════════════════════════════════
 function renderSim() {
   const s = LS.sim();
+  let equity = s.capital;
+  const closed = [];
+
+  s.trades.forEach(t => {
+    if (t.status === 'open') {
+      const cur = latest[t.sym]?.price;
+      if (cur) {
+        const upl = t.side === 'BUY' ? (cur - t.entry) * t.qty : (t.entry - cur) * t.qty;
+        equity += upl;
+        // Auto SL/TP
+        if (t.side === 'BUY' && (cur <= t.sl || cur >= t.tp)) {
+          t.status = 'closed'; t.exit = cur;
+          t.realized = (cur - t.entry) * t.qty;
+        } else if (t.side === 'SELL' && (cur >= t.sl || cur <= t.tp)) {
+          t.status = 'closed'; t.exit = cur;
+          t.realized = (t.entry - cur) * t.qty;
+        }
+      }
+    } else {
+      equity += t.realized || 0;
+      closed.push(t);
+    }
+  });
+  s.equity = equity;
+  LS.setSim(s);
+
   document.getElementById('simCapital').textContent = fmtP(s.capital);
   document.getElementById('simEquity').textContent = fmtP(s.equity);
-  const open = s.trades.filter(t => t.status === 'open');
-  document.getElementById('simOpen').textContent = open.length;
+  document.getElementById('simOpen').textContent = s.trades.filter(t => t.status === 'open').length;
   const pl = s.equity - s.capital;
   const plEl = document.getElementById('simPL');
   plEl.textContent = (pl>=0?'+':'') + fmtP(pl);
   plEl.className = 'font-black ' + (pl>=0 ? 'text-emerald-400' : 'text-red-400');
 
-  // Update open trades with current prices
+  // Winrate
+  const wins = closed.filter(t => (t.realized||0) > 0).length;
+  const wrEl = document.getElementById('simWR');
+  if (closed.length) {
+    const wr = (wins / closed.length * 100).toFixed(0);
+    wrEl.textContent = wr + '% (' + wins + '/' + closed.length + ')';
+  } else wrEl.textContent = '—';
+
   let html = '';
   s.trades.slice().reverse().forEach(t => {
     const cur = latest[t.sym]?.price;
@@ -1510,7 +805,7 @@ function renderSim() {
     if (t.status === 'open' && cur) {
       upl = t.side === 'BUY' ? (cur - t.entry) * t.qty : (t.entry - cur) * t.qty;
     }
-    const plShow = t.status === 'open' ? upl : t.realized;
+    const plShow = t.status === 'open' ? upl : (t.realized || 0);
     html += `<div class="bg-dark-900 rounded-xl p-2.5 flex justify-between items-center gap-2">
       <div>
         <span class="font-bold">${t.sym}</span>
@@ -1524,11 +819,11 @@ function renderSim() {
       </div>
     </div>`;
   });
-  document.getElementById('simTrades').innerHTML = html || '<div class="text-slate-500 text-sm">Nema tradeova. Koristi Auto-trguj ili Paper BUY/SELL u detaljima.</div>';
+  document.getElementById('simTrades').innerHTML = html || '<div class="text-slate-500 text-sm">Nema tradeova.</div>';
 }
 
 function simReset() {
-  if (!confirm('Resetirati simulator na $10,000?')) return;
+  if (!confirm('Reset simulator na $10,000?')) return;
   LS.setSim({ capital: 10000, equity: 10000, trades: [] });
   renderSim();
 }
@@ -1537,33 +832,37 @@ function simOpen(sym, side) {
   const c = latest[sym];
   if (!c) return;
   const s = LS.sim();
-  const riskPct = 0.015; // 1.5% risk
-  const riskAmt = s.equity * riskPct;
+  if (s.trades.filter(t => t.status === 'open').length >= CFG.maxOpen) {
+    alert('Max ' + CFG.maxOpen + ' otvorenih pozicija.');
+    return;
+  }
+  if (s.trades.some(t => t.sym === sym && t.status === 'open')) {
+    alert(sym + ' već otvoren.');
+    return;
+  }
+  const riskAmt = s.equity * CFG.riskPct;
   const entry = c.price;
-  const sl = side === 'BUY' ? c.sl : c.sl;
-  const tp = side === 'BUY' ? c.tp1 : c.tp1;
+  const sl = c.sl;
+  const tp = c.tp1;
   const riskPerUnit = Math.abs(entry - sl) || entry * 0.02;
   const qty = riskAmt / riskPerUnit;
-  const notional = qty * entry;
-  if (notional > s.equity * 0.25) {
-    alert('Pozicija prevelika, smanji risk.');
+  if (qty * entry > s.equity * CFG.maxNotionalPct) {
+    alert('Pozicija bi bila prevelika.');
     return;
   }
   s.trades.push({
-    id: Date.now().toString(36),
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
     sym, side, entry, sl, tp, qty,
-    status: 'open',
-    opened: Date.now(),
-    realized: 0
+    status: 'open', realized: 0, openedAt: Date.now()
   });
   LS.setSim(s);
   renderSim();
-  closeDetail();
 }
 
 function simOpenFromDetail(side) {
   if (!detailCoin) return;
   simOpen(detailCoin.sym, side);
+  closeDetail();
 }
 
 function simClose(id) {
@@ -1571,32 +870,33 @@ function simClose(id) {
   const t = s.trades.find(x => x.id === id);
   if (!t || t.status !== 'open') return;
   const cur = latest[t.sym]?.price || t.entry;
-  const pl = t.side === 'BUY' ? (cur - t.entry) * t.qty : (t.entry - cur) * t.qty;
   t.status = 'closed';
-  t.realized = pl;
-  t.closed = Date.now();
-  s.equity += pl;
+  t.exit = cur;
+  t.realized = t.side === 'BUY' ? (cur - t.entry) * t.qty : (t.entry - cur) * t.qty;
   LS.setSim(s);
   renderSim();
 }
 
 function simAutoTrade() {
-  const buys = coins.filter(c => c.signal === 'BUY' && c.score >= 75).slice(0, 3);
-  if (!buys.length) {
-    alert('Nema dovoljno jakih BUY signala (score ≥ 75).');
-    return;
-  }
-  buys.forEach(c => {
+  const candidates = coins.filter(c =>
+    (c.signal === 'BUY' && c.score >= CFG.autoMinScoreBuy && c.conf !== 'niska') ||
+    (c.signal === 'SELL' && c.score <= CFG.autoMaxScoreSell && c.conf !== 'niska')
+  ).slice(0, CFG.maxOpen);
+
+  let opened = 0;
+  candidates.forEach(c => {
     const s = LS.sim();
-    const already = s.trades.some(t => t.sym === c.sym && t.status === 'open');
-    if (!already) simOpen(c.sym, 'BUY');
+    if (s.trades.filter(t => t.status === 'open').length >= CFG.maxOpen) return;
+    if (s.trades.some(t => t.sym === c.sym && t.status === 'open')) return;
+    simOpen(c.sym, c.signal);
+    opened++;
   });
-  alert(`Otvoreno do ${buys.length} paper BUY pozicija na najjačim signalima.`);
-  renderSim();
+  if (!opened) alert('Nema dovoljno jakih signala (BUY≥' + CFG.autoMinScoreBuy + ' / SELL≤' + CFG.autoMaxScoreSell + ').');
+  else renderSim();
 }
 
 // ═══════════════════════════════════════════════════════════
-// PORTFOLIO
+// PORTFOLIO + ALERTS
 // ═══════════════════════════════════════════════════════════
 function pfAdd() {
   const sym = document.getElementById('pfCoin').value;
@@ -1631,46 +931,33 @@ function renderPortfolio() {
   document.getElementById('pfList').innerHTML = html;
 }
 
-// ═══════════════════════════════════════════════════════════
-// ALERTS
-// ═══════════════════════════════════════════════════════════
 function saveAlert() {
   const a = {
-    coin: document.getElementById('aCoin').value.trim().toUpperCase(),
+    coin: (document.getElementById('aCoin').value || '').trim().toUpperCase(),
     below: Number(document.getElementById('aBelow').value) || null,
     score: Number(document.getElementById('aScore').value) || null
   };
-  if (!a.coin) {
-    alert('Upiši coin!');
-    return;
-  }
-  LS.setAlert(a);
-  loadAlertUI();
-  checkAlerts();
-}  };
+  if (!a.coin) { alert('Odaberi coin!'); return; }
   LS.setAlert(a);
   loadAlertUI();
   checkAlerts();
 }
-
+function clearAlert() { LS.setAlert(null); loadAlertUI(); }
 function loadAlertUI() {
   const a = LS.alert();
   if (!a) { document.getElementById('alertText').textContent = 'Nema alertova.'; return; }
-  document.getElementById('alertText').innerHTML = `Alert: <b>${a.coin}</b>${a.below ? ` ispod ${a.below}` : ''}${a.score ? ` · BUY score ≥ ${a.score}` : ''}`;
+  document.getElementById('alertText').innerHTML = `Alert: <b>${a.coin}</b>${a.below ? ` ispod ${a.below}` : ''}${a.score ? ` · score ≥ ${a.score}` : ''}`;
+}
 function playAlertSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.value = 0.3;
-    osc.start();
-    setTimeout(() => { osc.stop(); ctx.close(); }, 400);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880; gain.gain.value = 0.25;
+    osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 350);
   } catch(e) {}
 }
-
 function checkAlerts() {
   const a = LS.alert();
   if (!a) return;
@@ -1678,32 +965,13 @@ function checkAlerts() {
   if (!c) return;
   let msg = [];
   if (a.below && c.price <= a.below) msg.push(`${a.coin} ispod ${a.below}!`);
-  if (a.score && c.score >= a.score && c.signal === 'BUY') msg.push(`${a.coin} BUY score ${c.score}!`);
+  if (a.score && c.score >= a.score && c.signal === 'BUY') msg.push(`${a.coin} BUY ${c.score}!`);
   if (msg.length) {
     document.getElementById('alertText').innerHTML = `<span class="text-yellow-400 font-bold">🔔 ${msg.join(' · ')}</span>`;
     playAlertSound();
   }
-}}
-
-function saveAlert() {
-  const a = {
-    coin: document.getElementById('aCoin').value.trim().toUpperCase(),
-    below: Number(document.getElementById('aBelow').value) || null,
-    score: Number(document.getElementById('aScore').value) || null
-  };
-  if (!a.coin) {
-    alert('Upiši coin!');
-    return;
-  }
-  LS.setAlert(a);
-  loadAlertUI();
-  checkAlerts();
-}  }
 }
 
-// ═══════════════════════════════════════════════════════════
-// AUTO REFRESH
-// ═══════════════════════════════════════════════════════════
 function toggleAuto() {
   const btn = document.getElementById('btnAuto');
   if (autoTimer) {
@@ -1711,16 +979,13 @@ function toggleAuto() {
     autoTimer = null;
     btn.textContent = '🔄 Auto OFF';
   } else {
-    autoTimer = setInterval(loadAll, 90 * 1000); // 90s to respect rate limits
+    autoTimer = setInterval(loadAll, 90 * 1000);
     btn.textContent = '🔄 Auto ON';
     loadAll();
   }
 }
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  // optional auto load
-});
+document.addEventListener('DOMContentLoaded', () => {});
 </script>
 </body>
 </html>
