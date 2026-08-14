@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1a">
-<title>Doktor Kripta v3 — Precision Range</title>
+<title>Doktor Kripta v4 — Precision Range</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
@@ -132,14 +132,19 @@ tailwind.config = {
 
   <section id="sec-sim" class="hidden">
     <div class="card p-4">
-      <h3 class="font-bold mb-1">🎮 Paper Trading</h3>
-      <p class="text-xs text-slate-400 mb-3">Risk 1.5% · max 4 otvorene · auto SL/TP · samo high/srednja conf.</p>
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+      <h3 class="font-bold mb-1">🎮 Paper Trading + statistika</h3>
+      <p class="text-xs text-slate-400 mb-3">Risk 1.5% · max 4 otvorene · auto SL/TP · winrate samo na zatvorenim tradeovima.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Kapital</div><div id="simCapital" class="font-black text-emerald-400">$10,000</div></div>
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Equity</div><div id="simEquity" class="font-black">$10,000</div></div>
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Otvorene</div><div id="simOpen" class="font-black text-sky-400">0</div></div>
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">P/L</div><div id="simPL" class="font-black">$0</div></div>
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Winrate</div><div id="simWR" class="font-black text-yellow-400">—</div></div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Win rate</div><div id="simWR" class="font-black text-yellow-400">—</div></div>
+        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">W / L</div><div id="simWL" class="font-black">0 / 0</div></div>
+        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Expectancy</div><div id="simExp" class="font-black text-sky-400">—</div></div>
+        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Profit factor</div><div id="simPF" class="font-black">—</div></div>
       </div>
       <div class="flex flex-wrap gap-2 mb-3">
         <button onclick="simReset()" class="px-3 py-1.5 rounded-lg bg-slate-700 text-sm font-semibold">Reset $10k</button>
@@ -197,7 +202,7 @@ tailwind.config = {
   </div>
 </main>
 
-<footer class="text-center text-xs text-slate-600 py-6">Doktor Kripta v3 · Precision Range · CoinGecko · Nije financijski savjet</footer>
+<footer class="text-center text-xs text-slate-600 py-6">Doktor Kripta v4 · Precision Range · CoinGecko · Nije financijski savjet</footer>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -233,14 +238,14 @@ let chartInstance = null;
 let detailCoin = null;
 
 const LS = {
-  watch: () => JSON.parse(localStorage.getItem('dk3_watch') || '[]'),
-  setWatch: v => localStorage.setItem('dk3_watch', JSON.stringify(v)),
-  pf: () => JSON.parse(localStorage.getItem('dk3_pf') || '[]'),
-  setPf: v => localStorage.setItem('dk3_pf', JSON.stringify(v)),
-  alert: () => JSON.parse(localStorage.getItem('dk3_alert') || 'null'),
-  setAlert: v => localStorage.setItem('dk3_alert', JSON.stringify(v)),
-  sim: () => JSON.parse(localStorage.getItem('dk3_sim') || JSON.stringify({ capital: 10000, equity: 10000, trades: [] })),
-  setSim: v => localStorage.setItem('dk3_sim', JSON.stringify(v)),
+  watch: () => JSON.parse(localStorage.getItem('dk4_watch') || '[]'),
+  setWatch: v => localStorage.setItem('dk4_watch', JSON.stringify(v)),
+  pf: () => JSON.parse(localStorage.getItem('dk4_pf') || '[]'),
+  setPf: v => localStorage.setItem('dk4_pf', JSON.stringify(v)),
+  alert: () => JSON.parse(localStorage.getItem('dk4_alert') || 'null'),
+  setAlert: v => localStorage.setItem('dk4_alert', JSON.stringify(v)),
+  sim: () => JSON.parse(localStorage.getItem('dk4_sim') || JSON.stringify({ capital: 10000, equity: 10000, trades: [] })),
+  setSim: v => localStorage.setItem('dk4_sim', JSON.stringify(v)),
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -790,13 +795,35 @@ function renderSim() {
   plEl.textContent = (pl>=0?'+':'') + fmtP(pl);
   plEl.className = 'font-black ' + (pl>=0 ? 'text-emerald-400' : 'text-red-400');
 
-  // Winrate
-  const wins = closed.filter(t => (t.realized||0) > 0).length;
+  // Winrate + expectancy + profit factor
+  const wins = closed.filter(t => (t.realized||0) > 0);
+  const losses = closed.filter(t => (t.realized||0) <= 0);
   const wrEl = document.getElementById('simWR');
+  const wlEl = document.getElementById('simWL');
+  const expEl = document.getElementById('simExp');
+  const pfEl = document.getElementById('simPF');
+  wlEl.textContent = wins.length + ' / ' + losses.length;
   if (closed.length) {
-    const wr = (wins / closed.length * 100).toFixed(0);
-    wrEl.textContent = wr + '% (' + wins + '/' + closed.length + ')';
-  } else wrEl.textContent = '—';
+    const wr = (wins.length / closed.length * 100).toFixed(0);
+    wrEl.textContent = wr + '%';
+    const grossWin = wins.reduce((a,t) => a + (t.realized||0), 0);
+    const grossLoss = Math.abs(losses.reduce((a,t) => a + (t.realized||0), 0));
+    const expectancy = closed.reduce((a,t) => a + (t.realized||0), 0) / closed.length;
+    expEl.textContent = (expectancy>=0?'+':'') + fmtP(expectancy);
+    expEl.className = 'font-black ' + (expectancy>=0 ? 'text-emerald-400' : 'text-red-400');
+    if (grossLoss > 0) {
+      const pf = grossWin / grossLoss;
+      pfEl.textContent = pf.toFixed(2);
+      pfEl.className = 'font-black ' + (pf >= 1 ? 'text-emerald-400' : 'text-red-400');
+    } else {
+      pfEl.textContent = grossWin > 0 ? '∞' : '—';
+      pfEl.className = 'font-black text-emerald-400';
+    }
+  } else {
+    wrEl.textContent = '—';
+    expEl.textContent = '—';
+    pfEl.textContent = '—';
+  }
 
   let html = '';
   s.trades.slice().reverse().forEach(t => {
