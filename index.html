@@ -158,7 +158,6 @@ tailwind.config = {
       <div class="flex flex-wrap gap-2 mb-3 items-center">
         <button onclick="simReset()" class="px-3 py-1.5 rounded-lg bg-slate-700 text-sm font-semibold">Reset $10k</button>
         <button onclick="simClearClosed()" class="px-3 py-1.5 rounded-lg bg-slate-700 text-sm font-semibold">Obriši zatvorene</button>
-        <button onclick="simAutoTrade()" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-sm font-bold">Auto-trguj (≥85 Score)</button>
       </div>
       <div id="simTrades" class="space-y-2 text-sm max-h-80 overflow-y-auto"></div>
     </div>
@@ -170,7 +169,7 @@ tailwind.config = {
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
         <select id="pfCoin" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></select>
         <input id="pfAmount" type="number" step="any" placeholder="Količina" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-        <input id="pfEntry" type="number" step="any" placeholder="Entry" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+        <input id="pfEntry" type="number" step="any" placeholder="Entry cijena" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
         <button onclick="pfAdd()" class="px-3 py-2 rounded-lg bg-emerald-600 font-bold text-sm">Dodaj</button>
       </div>
       <div id="pfList" class="space-y-2 text-sm"></div>
@@ -540,6 +539,79 @@ function clearJournal() {
   renderJournal();
 }
 
+function renderPortfolio() {
+  const list = LS.pf();
+  const container = document.getElementById('pfList');
+  if (!container) return;
+  if (!list.length) {
+    container.innerHTML = '<div class="text-slate-500 text-center py-4">Portfolio je prazan.</div>';
+    return;
+  }
+  container.innerHTML = list.map((item, idx) => {
+    const cur = latest[item.sym]?.price || item.entry;
+    const pnl = ((cur - item.entry) / item.entry) * 100;
+    const pnlUsd = (cur - item.entry) * item.amount;
+    const color = pnl >= 0 ? 'text-emerald-400' : 'text-red-400';
+    return `
+    <div class="bg-dark-900 rounded-xl p-3 flex justify-between items-center">
+      <div>
+        <div class="font-bold">${item.sym} <span class="text-xs text-slate-400">(${item.amount})</span></div>
+        <div class="text-xs text-slate-500">Entry: ${fmtP(item.entry)} · Trenutno: ${fmtP(cur)}</div>
+      </div>
+      <div class="text-right">
+        <div class="font-bold ${color}">${fmtPct(pnl)} (${fmtP(pnlUsd)})</div>
+        <button onclick="pfRemove(${idx})" class="text-xs text-red-400 hover:underline">Ukloni</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function pfAdd() {
+  const sym = document.getElementById('pfCoin').value;
+  const amount = parseFloat(document.getElementById('pfAmount').value);
+  const entry = parseFloat(document.getElementById('pfEntry').value) || latest[sym]?.price;
+  if (!sym || !amount || !entry) return alert('Unesite količinu i cijenu.');
+  const list = LS.pf();
+  list.push({ sym, amount, entry });
+  LS.setPf(list);
+  document.getElementById('pfAmount').value = '';
+  document.getElementById('pfEntry').value = '';
+  renderPortfolio();
+}
+
+function pfRemove(idx) {
+  const list = LS.pf();
+  list.splice(idx, 1);
+  LS.setPf(list);
+  renderPortfolio();
+}
+
+function saveAlert() {
+  const sym = document.getElementById('aCoin').value;
+  const below = parseFloat(document.getElementById('aBelow').value) || null;
+  const score = parseInt(document.getElementById('aScore').value) || null;
+  if (!below && !score) return alert('Unesite barem jedan uvjet za alert.');
+  LS.setAlert({ sym, below, score });
+  renderAlert();
+  alert('Alert spremljen!');
+}
+
+function clearAlert() {
+  LS.setAlert(null);
+  renderAlert();
+}
+
+function renderAlert() {
+  const a = LS.alert();
+  const el = document.getElementById('alertText');
+  if (!el) return;
+  if (!a) {
+    el.textContent = 'Nema aktivnih alertova.';
+    return;
+  }
+  el.innerHTML = `Aktivan alert za <b>${a.sym}</b>: ${a.below ? `Cijena < $${a.below}` : ''} ${a.score ? `Score ≥ ${a.score}` : ''}`;
+}
+
 async function fetchMarkets() {
   const ids = COIN_IDS.join(',');
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h`;
@@ -605,6 +677,7 @@ async function loadAll() {
     renderWatch();
     renderSim();
     renderPortfolio();
+    renderAlert();
   } catch (e) {
     document.getElementById('mainDiag').textContent = 'Greška: ' + e.message;
     status.textContent = 'greška';
@@ -634,6 +707,7 @@ function setTab(id, btn) {
   if (id === 'sim') renderSim();
   if (id === 'portfolio') renderPortfolio();
   if (id === 'signals') renderSignals();
+  if (id === 'alerts') renderAlert();
 }
 
 function fmtP(p) {
@@ -793,6 +867,24 @@ function renderSim() {
   const s = LS.sim();
   document.getElementById('simCapital').textContent = fmtP(s.capital);
   document.getElementById('simEquity').textContent = fmtP(s.equity);
+}
+
+function simReset() {
+  LS.setSim({ capital: 10000, equity: 10000, trades: [] });
+  renderSim();
+}
+
+function simClearClosed() {
+  const s = LS.sim();
+  s.trades = s.trades.filter(t => t.status === 'OPEN');
+  LS.setSim(s);
+  renderSim();
+}
+
+function simOpenFromDetail(side) {
+  if (!detailCoin) return;
+  alert(`Paper ${side} otvoren za ${detailCoin.sym} @ ${fmtP(detailCoin.price)}`);
+  closeDetail();
 }
 
 function toggleAuto() {
