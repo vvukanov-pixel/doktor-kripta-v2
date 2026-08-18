@@ -435,9 +435,6 @@ function analyzeSparkline(spark, price, change24h, volume, mcap) {
   };
 }
 
-// ═══════════════════════════════════════════════════════════
-// DNEVNIK LOGIKA (AUTO LOG & EVALUATE)
-// ═══════════════════════════════════════════════════════════
 function autoLogSignals(list) {
   let j = LS.journal();
   const now = Date.now();
@@ -494,10 +491,15 @@ function renderJournal() {
   const hits = closed.filter(x => x.hit).length;
   const winRate = closed.length ? Math.round((hits / closed.length) * 100) : 0;
 
-  document.getElementById('jTotal').textContent = j.length;
-  document.getElementById('jHits').textContent = hits;
-  document.getElementById('jWinRate').textContent = closed.length ? `${winRate}%` : '—';
-  document.getElementById('statAccuracy').textContent = closed.length ? `${winRate}%` : '—';
+  const elTotal = document.getElementById('jTotal');
+  const elHits = document.getElementById('jHits');
+  const elWR = document.getElementById('jWinRate');
+  const elStatAcc = document.getElementById('statAccuracy');
+
+  if (elTotal) elTotal.textContent = j.length;
+  if (elHits) elHits.textContent = hits;
+  if (elWR) elWR.textContent = closed.length ? `${winRate}%` : '—';
+  if (elStatAcc) elStatAcc.textContent = closed.length ? `${winRate}%` : '—';
 
   let html = '';
   j.forEach(p => {
@@ -526,7 +528,10 @@ function renderJournal() {
     </div>`;
   });
 
-  document.getElementById('journalList').innerHTML = html || '<div class="text-slate-500 text-sm py-4 text-center">Nema zabilježenih predikcija. Čekam Score ≥ 85.</div>';
+  const listEl = document.getElementById('journalList');
+  if (listEl) {
+    listEl.innerHTML = html || '<div class="text-slate-500 text-sm py-4 text-center">Nema zabilježenih predikcija. Čekam Score ≥ 85.</div>';
+  }
 }
 
 function clearJournal() {
@@ -571,15 +576,18 @@ async function loadAll() {
     evaluateJournal();
 
     const buys = coins.filter(c => c.signal === 'BUY');
-    const sells = coins.filter(c => c.signal === 'SELL');
     const high = coins.filter(c => c.conf === 'visoka');
     const best = buys[0] || coins[0];
 
-    document.getElementById('statBuy').textContent = buys.length;
-    document.getElementById('statSell').textContent = sells.length;
-    document.getElementById('statHigh').textContent = high.length;
-    document.getElementById('statBest').textContent = best ? `${best.sym} (${best.score})` : '—';
-    document.getElementById('statTime').textContent = new Date().toLocaleTimeString('hr');
+    const elStatBuy = document.getElementById('statBuy');
+    const elStatHigh = document.getElementById('statHigh');
+    const elStatBest = document.getElementById('statBest');
+    const elStatTime = document.getElementById('statTime');
+
+    if (elStatBuy) elStatBuy.textContent = buys.length;
+    if (elStatHigh) elStatHigh.textContent = high.length;
+    if (elStatBest) elStatBest.textContent = best ? `${best.sym} (${best.score})` : '—';
+    if (elStatTime) elStatTime.textContent = new Date().toLocaleTimeString('hr');
 
     let diag = '';
     if (buys.length > 0) {
