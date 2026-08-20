@@ -40,7 +40,6 @@ tailwind.config = { theme: { extend: { colors: { dark: { 900:'#050914',800:'#0a0
     </div>
     <p id="mainDiag" class="text-sm text-slate-300 mb-3">Učitavanje...</p>
 
-    <!-- TOP 5 -->
     <div class="bg-dark-900 rounded-xl p-3 mb-3">
       <div class="text-xs text-slate-500 uppercase mb-2 font-bold">🏆 Top 5 predviđenih skokova</div>
       <div id="top5" class="space-y-1.5 text-sm"></div>
@@ -98,7 +97,7 @@ function atr(prices,n=14){
   if(!prices||prices.length<n+1)return null;
   const trs=[];
   for(let i=1;i<prices.length;i++){
-    const h=l=prices[i], prev=prices[i-1];
+    const h=prices[i], l=prices[i], prev=prices[i-1];
     trs.push(Math.max(h-l, Math.abs(h-prev), Math.abs(l-prev)));
   }
   return sma(trs.slice(-n),n);
@@ -146,7 +145,7 @@ async function fetchKlines(symbol){
   const res = await fetch(url);
   if(!res.ok) return null;
   const data = await res.json();
-  return data.map(c => parseFloat(c[4])); // close
+  return data.map(c => parseFloat(c[4]));
 }
 
 async function loadAll(){
@@ -171,7 +170,6 @@ async function loadAll(){
     const maxMin = coins.filter(c=>c.order==='MAX → MIN');
     const best = minMax[0] || coins[0];
 
-    // Top 5
     const top5 = minMax.slice(0,5);
     document.getElementById('top5').innerHTML = top5.length
       ? top5.map((c,i)=>`
