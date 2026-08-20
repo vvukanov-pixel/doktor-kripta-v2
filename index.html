@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="hr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1a">
-<title>Doktor Kripta v3.4 — 15-30m Accuracy Journal</title>
+<title>Doktor Kripta v3.5 — Order Predict</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -33,14 +32,13 @@ tailwind.config = {
 </style>
 </head>
 <body class="bg-dark-900 text-white min-h-screen">
-
 <header class="sticky top-0 z-50 bg-dark-800/95 backdrop-blur border-b border-slate-800 px-4 py-3">
   <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center text-xl font-black">🩺</div>
       <div>
-        <h1 class="text-lg sm:text-xl font-black tracking-tight">Doktor Kripta <span class="text-emerald-400">v3.4</span></h1>
-        <p class="text-xs text-slate-400">15–30 min Dnevnik Točnosti · Score ≥ 85</p>
+        <h1 class="text-lg sm:text-xl font-black tracking-tight">Doktor Kripta <span class="text-emerald-400">v3.5</span></h1>
+        <p class="text-xs text-slate-400">15m Order Predict · MIN→MAX / MAX→MIN</p>
       </div>
     </div>
     <div class="flex gap-2">
@@ -49,30 +47,28 @@ tailwind.config = {
     </div>
   </div>
 </header>
-
 <main class="max-w-6xl mx-auto px-3 sm:px-4 py-4 space-y-4">
-
   <div class="card p-4">
     <div class="flex items-center justify-between gap-2 mb-2">
-      <h2 class="font-bold text-base sm:text-lg flex items-center gap-2">🩺 Doktorova dijagnoza (15–30 min)</h2>
+      <h2 class="font-bold text-base sm:text-lg flex items-center gap-2">🩺 Doktorova dijagnoza (15 min)</h2>
       <span id="statusPill" class="pill bg-emerald-900/40 text-emerald-300">gotovo</span>
     </div>
     <p id="mainDiag" class="text-sm text-slate-300 leading-relaxed">Učitavanje podataka...</p>
     <div id="statsRow" class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3">
       <div class="bg-dark-900 rounded-xl p-2.5 text-center">
-        <div class="text-[10px] text-slate-500 uppercase">BUY (≥85)</div>
+        <div class="text-[10px] text-slate-500 uppercase">MIN→MAX</div>
         <div id="statBuy" class="text-2xl font-black text-emerald-400">0</div>
       </div>
       <div class="bg-dark-900 rounded-xl p-2.5 text-center">
-        <div class="text-[10px] text-slate-500 uppercase">Točnost 30m</div>
-        <div id="statAccuracy" class="text-2xl font-black text-yellow-400">—</div>
+        <div class="text-[10px] text-slate-500 uppercase">MAX→MIN</div>
+        <div id="statSell" class="text-2xl font-black text-red-400">0</div>
       </div>
       <div class="bg-dark-900 rounded-xl p-2.5 text-center">
         <div class="text-[10px] text-slate-500 uppercase">High conf</div>
         <div id="statHigh" class="text-2xl font-black text-yellow-400">0</div>
       </div>
       <div class="bg-dark-900 rounded-xl p-2.5 text-center">
-        <div class="text-[10px] text-slate-500 uppercase">Najbolji 30m pick</div>
+        <div class="text-[10px] text-slate-500 uppercase">Najbolji skok</div>
         <div id="statBest" class="text-lg font-black text-sky-400">—</div>
       </div>
       <div class="bg-dark-900 rounded-xl p-2.5 text-center">
@@ -81,7 +77,6 @@ tailwind.config = {
       </div>
     </div>
   </div>
-
   <div class="grid grid-cols-3 sm:grid-cols-7 gap-1.5">
     <button class="tab-btn active py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="market" onclick="setTab('market',this)">📊 Tržište</button>
     <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="signals" onclick="setTab('signals',this)">🎯 Signali</button>
@@ -91,107 +86,75 @@ tailwind.config = {
     <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="portfolio" onclick="setTab('portfolio',this)">💼 Portfolio</button>
     <button class="tab-btn py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold" data-tab="alerts" onclick="setTab('alerts',this)">🚨 Alerti</button>
   </div>
-
-  <!-- DNEVNIK TOČNOSTI TAB -->
   <section id="sec-journal" class="hidden">
     <div class="card p-4">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <h3 class="font-bold text-lg text-yellow-400">📋 Dnevnik točnosti predikcija (30 min)</h3>
-          <p class="text-xs text-slate-400">Automatsko bilježenje i provjera je li cijena ostala u predviđenom rasponu.</p>
+          <h3 class="font-bold text-lg text-yellow-400">📋 Dnevnik točnosti</h3>
+          <p class="text-xs text-slate-400">Provjera je li redoslijed pogođen.</p>
         </div>
-        <button onclick="clearJournal()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-semibold">Obriši dnevnik</button>
+        <button onclick="clearJournal()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-semibold">Obriši</button>
       </div>
-
       <div class="grid grid-cols-3 gap-2 mb-4">
         <div class="bg-dark-900 rounded-xl p-2.5 text-center">
-          <div class="text-[10px] text-slate-500 uppercase">Ukupno prognoza</div>
+          <div class="text-[10px] text-slate-500 uppercase">Ukupno</div>
           <div id="jTotal" class="text-xl font-black text-white">0</div>
         </div>
         <div class="bg-dark-900 rounded-xl p-2.5 text-center">
-          <div class="text-[10px] text-slate-500 uppercase">Pogođeno ✅</div>
+          <div class="text-[10px] text-slate-500 uppercase">Pogođeno</div>
           <div id="jHits" class="text-xl font-black text-emerald-400">0</div>
         </div>
         <div class="bg-dark-900 rounded-xl p-2.5 text-center">
-          <div class="text-[10px] text-slate-500 uppercase">Uspješnost %</div>
+          <div class="text-[10px] text-slate-500 uppercase">Uspješnost</div>
           <div id="jWinRate" class="text-xl font-black text-yellow-400">—</div>
         </div>
       </div>
-
       <div id="journalList" class="space-y-2 text-sm max-h-96 overflow-y-auto"></div>
     </div>
   </section>
-
   <div class="flex flex-wrap gap-2 items-center">
     <select id="filterSig" onchange="renderList()" class="bg-dark-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm">
       <option value="all">Svi</option>
+      <option value="MIN→MAX">MIN → MAX</option>
+      <option value="MAX→MIN">MAX → MIN</option>
       <option value="BUY">BUY (≥85)</option>
-      <option value="SELL">SELL (≤25)</option>
       <option value="HOLD">HOLD</option>
-      <option value="HIGH">Samo high conf</option>
     </select>
     <select id="sortBy" onchange="renderList()" class="bg-dark-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm">
       <option value="score">Score</option>
-      <option value="pred">30m Skok %</option>
+      <option value="pred">Skok %</option>
       <option value="change">24h %</option>
-      <option value="mcap">Market Cap</option>
       <option value="name">Ime</option>
     </select>
     <input id="searchCoin" type="text" placeholder="Traži…" oninput="renderList()" class="bg-dark-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm w-28 sm:w-36">
   </div>
-
   <section id="sec-market"><div id="coinList" class="space-y-3"></div></section>
   <section id="sec-signals" class="hidden"><div id="signalList" class="space-y-3"></div></section>
   <section id="sec-watch" class="hidden"><div id="watchList" class="space-y-3"></div></section>
-
   <section id="sec-sim" class="hidden">
     <div class="card p-4">
       <h3 class="font-bold mb-1">🎮 Paper Trading</h3>
-      <p class="text-xs text-slate-400 mb-3">SL -1.5% · TP +1.2% · Trailing uključen.</p>
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+      <p class="text-xs text-slate-400 mb-3">Samo za pregled.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Kapital</div><div id="simCapital" class="font-black text-emerald-400">$10,000</div></div>
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Equity</div><div id="simEquity" class="font-black">$10,000.00</div></div>
+        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Equity</div><div id="simEquity" class="font-black">$10,000</div></div>
         <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Otvorene</div><div id="simOpen" class="font-black text-sky-400">0</div></div>
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">P/L</div><div id="simPL" class="font-black text-emerald-400">+$0.00</div></div>
-        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">Winrate</div><div id="simWR" class="font-black text-yellow-400">—</div></div>
+        <div class="bg-dark-900 rounded-xl p-2.5"><div class="text-[10px] text-slate-500">P/L</div><div id="simPL" class="font-black text-emerald-400">+$0</div></div>
       </div>
-      <div class="flex flex-wrap gap-2 mb-3 items-center">
-        <button onclick="simReset()" class="px-3 py-1.5 rounded-lg bg-slate-700 text-sm font-semibold">Reset $10k</button>
-        <button onclick="simClearClosed()" class="px-3 py-1.5 rounded-lg bg-slate-700 text-sm font-semibold">Obriši zatvorene</button>
-      </div>
-      <div id="simTrades" class="space-y-2 text-sm max-h-80 overflow-y-auto"></div>
     </div>
   </section>
-
   <section id="sec-portfolio" class="hidden">
     <div class="card p-4">
       <h3 class="font-bold mb-3">💼 Portfolio</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
-        <select id="pfCoin" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></select>
-        <input id="pfAmount" type="number" step="any" placeholder="Količina" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-        <input id="pfEntry" type="number" step="any" placeholder="Entry cijena" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-        <button onclick="pfAdd()" class="px-3 py-2 rounded-lg bg-emerald-600 font-bold text-sm">Dodaj</button>
-      </div>
-      <div id="pfList" class="space-y-2 text-sm"></div>
+      <div id="pfList" class="space-y-2 text-sm text-slate-400">Portfolio prazan.</div>
     </div>
   </section>
-
   <section id="sec-alerts" class="hidden">
     <div class="card p-4">
       <h3 class="font-bold mb-2">🚨 Alerti</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-        <select id="aCoin" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></select>
-        <input id="aBelow" type="number" step="any" placeholder="Cijena ispod" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-        <input id="aScore" type="number" placeholder="BUY score ≥" class="bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-      </div>
-      <div class="flex gap-2 mb-3">
-        <button onclick="saveAlert()" class="px-3 py-2 rounded-lg bg-emerald-600 font-bold text-sm">Spremi</button>
-        <button onclick="clearAlert()" class="px-3 py-2 rounded-lg bg-slate-700 text-sm">Obriši</button>
-      </div>
       <div id="alertText" class="text-sm text-slate-400">Nema alertova.</div>
     </div>
   </section>
-
   <div id="detailModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 p-3" onclick="if(event.target===this)closeDetail()">
     <div class="card w-full max-w-lg max-h-[90vh] overflow-y-auto p-4">
       <div class="flex justify-between items-start mb-3">
@@ -203,16 +166,10 @@ tailwind.config = {
       </div>
       <canvas id="dChart" height="160" class="mb-3 rounded-xl bg-dark-900"></canvas>
       <div id="dBody" class="text-sm space-y-2"></div>
-      <div class="flex gap-2 mt-4">
-        <button onclick="simOpenFromDetail('BUY')" class="flex-1 py-2.5 rounded-xl bg-emerald-600 font-bold text-sm">Paper BUY</button>
-        <button onclick="simOpenFromDetail('SELL')" class="flex-1 py-2.5 rounded-xl bg-red-600 font-bold text-sm">Paper SELL</button>
-      </div>
     </div>
   </div>
 </main>
-
-<footer class="text-center text-xs text-slate-600 py-6">Doktor Kripta v3.4 · Dnevnik Točnosti · Sinhronizirano s Botom</footer>
-
+<footer class="text-center text-xs text-slate-600 py-6">Doktor Kripta v3.5 · Order Predict · Sinkronizirano s Botom</footer>
 <script>
 const COIN_IDS = [
   'bitcoin','ethereum','solana','sui','litecoin','avalanche-2','chainlink',
@@ -220,7 +177,6 @@ const COIN_IDS = [
   'binancecoin','polkadot','uniswap','aave','arbitrum','optimism',
   'injective-protocol','render-token','cosmos','aptos','fetch-ai','kaspa','hedera-hashgraph'
 ];
-
 const CFG = {
   minRangePct: 3.5,
   buyScore: 85,
@@ -228,30 +184,19 @@ const CFG = {
   highBuy: 88,
   highSell: 18,
   tp1Pct: 0.012,
-  slPct: 0.015,
-  riskPct: 0.015,
-  maxOpen: 4
+  slPct: 0.015
 };
-
 let coins = [];
 let latest = {};
 let autoTimer = null;
 let chartInstance = null;
 let detailCoin = null;
-
 const LS = {
-  watch: () => JSON.parse(localStorage.getItem('dk3_watch') || '[]'),
-  setWatch: v => localStorage.setItem('dk3_watch', JSON.stringify(v)),
-  pf: () => JSON.parse(localStorage.getItem('dk3_pf') || '[]'),
-  setPf: v => localStorage.setItem('dk3_pf', JSON.stringify(v)),
-  alert: () => JSON.parse(localStorage.getItem('dk3_alert') || 'null'),
-  setAlert: v => localStorage.setItem('dk3_alert', JSON.stringify(v)),
-  sim: () => JSON.parse(localStorage.getItem('dk3_sim') || JSON.stringify({ capital: 10000, equity: 10000, trades: [] })),
-  setSim: v => localStorage.setItem('dk3_sim', JSON.stringify(v)),
-  journal: () => JSON.parse(localStorage.getItem('dk3_journal') || '[]'),
-  setJournal: v => localStorage.setItem('dk3_journal', JSON.stringify(v))
+  watch: () => JSON.parse(localStorage.getItem('dk35_watch') || '[]'),
+  setWatch: v => localStorage.setItem('dk35_watch', JSON.stringify(v)),
+  journal: () => JSON.parse(localStorage.getItem('dk35_journal') || '[]'),
+  setJournal: v => localStorage.setItem('dk35_journal', JSON.stringify(v))
 };
-
 function sma(arr, n) {
   if (!arr || arr.length < n) return null;
   return arr.slice(-n).reduce((a,b)=>a+b,0) / n;
@@ -286,7 +231,7 @@ function bollinger(prices, n=20) {
   const low = mid - 2*sd, high = mid + 2*sd;
   const last = prices.at(-1);
   const pos = (high-low) > 0 ? (last-low)/(high-low) : 0.5;
-  return { mid, low, high, pos, width: high-low };
+  return { mid, low, high, pos };
 }
 function rangeQuality(prices) {
   if (!prices || prices.length < 30) return 0.5;
@@ -297,20 +242,17 @@ function rangeQuality(prices) {
   for (let i=1; i<prices.length; i++) {
     if ((prices[i-1] < mid && prices[i] >= mid) || (prices[i-1] > mid && prices[i] <= mid)) crosses++;
   }
-  const q = 1 - Math.min(1, Math.abs(crosses - 7) / 20);
-  return Math.max(0.2, Math.min(1, q));
+  return Math.max(0.2, Math.min(1, 1 - Math.min(1, Math.abs(crosses - 7) / 20)));
 }
-
-function analyzeSparkline(spark, price, change24h, volume, mcap) {
+function analyzeSparkline(spark, price, change24h) {
   const empty = {
-    score: 50, signal: 'HOLD', conf: 'niska', quality: 0, rr: 0,
-    rangePos: 0.5, rangePos24: 0.5, rsi: null, rangePct: 0,
+    score: 50, signal: 'HOLD', conf: 'niska',
+    rangePos: 0.5, rsi: null, rangePct: 0,
     entry: price, sl: price * 0.985, tp1: price * 1.012,
     predMin: price * 0.99, predMax: price * 1.012, predJumpPct: 1.2,
-    reason: 'Nedovoljno podataka', confluence: 0
+    order: 'NEPOZNATO', reason: 'Nedovoljno podataka'
   };
   if (!spark || spark.length < 30) return empty;
-
   const prices = spark.map(Number);
   const last = price || prices.at(-1);
   const low7 = Math.min(...prices);
@@ -318,398 +260,69 @@ function analyzeSparkline(spark, price, change24h, volume, mcap) {
   const range = high7 - low7 || 1;
   const rangePct = (range / last) * 100;
   const rangePos = (last - low7) / range;
-
-  const day = prices.slice(-24);
-  const low24 = Math.min(...day);
-  const high24 = Math.max(...day);
-  const range24 = high24 - low24 || 1;
-  const rangePos24 = (last - low24) / range24;
-
   const r = rsi(prices, 14);
   const bb = bollinger(prices, 20);
   const atr = atrApprox(prices, 14) || (last * 0.01);
-  const sma20 = sma(prices, 20);
-  const distSma = sma20 ? ((last - sma20) / sma20) * 100 : 0;
-  const quality = rangeQuality(prices);
-
   const p6 = prices.slice(-6);
   const microMom = p6.length >= 6 ? ((last - p6[0]) / p6[0]) * 100 : 0;
 
-  if (rangePct < CFG.minRangePct) {
-    return {
-      ...empty, score: 50, rangePct, rangePos, rangePos24, rsi: r,
-      predMin: last * 0.995, predMax: last * 1.005,
-      reason: `range premalen (${rangePct.toFixed(1)}% < ${CFG.minRangePct}%)`
-    };
+  // === 15m ORDER LOGIKA ===
+  const recent = prices.slice(-8);
+  const recentHigh = Math.max(...recent);
+  const recentLow = Math.min(...recent);
+  const rangeRecent = recentHigh - recentLow || last * 0.008;
+  const posInRecent = (last - recentLow) / rangeRecent;
+  let order = 'NEPOZNATO';
+  let orderReason = '';
+
+  if (microMom > 0.3 && posInRecent < 0.65) {
+    order = 'MAX → MIN';
+    orderReason = `Momentum gore (+${microMom.toFixed(2)}%)`;
+  } else if (microMom < -0.3 && posInRecent > 0.35) {
+    order = 'MIN → MAX';
+    orderReason = `Momentum dolje (${microMom.toFixed(2)}%)`;
+  } else if (posInRecent > 0.78) {
+    order = 'MIN → MAX';
+    orderReason = 'Cijena blizu vrha';
+  } else if (posInRecent < 0.22) {
+    order = 'MAX → MIN';
+    orderReason = 'Cijena blizu dna';
+  } else {
+    const lastMove = prices.at(-1) - prices.at(-2);
+    order = lastMove >= 0 ? 'MAX → MIN' : 'MIN → MAX';
+    orderReason = lastMove >= 0 ? 'Zadnji candle zeleni' : 'Zadnji candle crveni';
   }
 
-  let rangeScore = 0;
-  if (rangePos <= 0.12) rangeScore = 1.0;
-  else if (rangePos <= 0.22) rangeScore = 0.75;
-  else if (rangePos <= 0.35) rangeScore = 0.4;
-  else if (rangePos >= 0.88) rangeScore = -1.0;
-  else if (rangePos >= 0.78) rangeScore = -0.75;
-  else if (rangePos >= 0.65) rangeScore = -0.4;
-
-  let pos24 = 0;
-  if (rangePos24 <= 0.15) pos24 = 0.6;
-  else if (rangePos24 <= 0.25) pos24 = 0.35;
-  else if (rangePos24 >= 0.85) pos24 = -0.6;
-  else if (rangePos24 >= 0.75) pos24 = -0.35;
-
-  let rsiScore = 0;
-  if (r !== null) {
-    if (r <= 25) rsiScore = 1.0;
-    else if (r <= 32) rsiScore = 0.7;
-    else if (r <= 40) rsiScore = 0.35;
-    else if (r >= 75) rsiScore = -1.0;
-    else if (r >= 68) rsiScore = -0.7;
-    else if (r >= 60) rsiScore = -0.35;
-  }
-
-  let bbScore = 0;
-  if (bb) {
-    if (bb.pos <= 0.08) bbScore = 1.0;
-    else if (bb.pos <= 0.18) bbScore = 0.65;
-    else if (bb.pos <= 0.28) bbScore = 0.3;
-    else if (bb.pos >= 0.92) bbScore = -1.0;
-    else if (bb.pos >= 0.82) bbScore = -0.65;
-    else if (bb.pos >= 0.72) bbScore = -0.3;
-  }
-
-  let smaScore = 0;
-  if (distSma <= -4) smaScore = 0.4;
-  else if (distSma <= -2) smaScore = 0.2;
-  else if (distSma >= 4) smaScore = -0.4;
-  else if (distSma >= 2) smaScore = -0.2;
-
-  const raw = (rangeScore * 0.38 + pos24 * 0.12 + rsiScore * 0.25 + bbScore * 0.18 + smaScore * 0.07);
-  const adjusted = raw * (0.55 + 0.45 * quality);
-
-  let momPenalty = 0;
-  if (change24h < -10 && adjusted > 0) momPenalty = -0.18;
-  if (change24h > 10 && adjusted < 0) momPenalty = 0.18;
-
-  const finalRaw = Math.max(-1, Math.min(1, adjusted + momPenalty));
-  let score = Math.round(50 + finalRaw * 50);
-  score = Math.max(0, Math.min(100, score));
-
-  let confluence = 0;
-  if (Math.abs(rangeScore) >= 0.4) confluence++;
-  if (Math.abs(rsiScore) >= 0.35) confluence++;
-  if (Math.abs(bbScore) >= 0.3) confluence++;
-  if (Math.abs(pos24) >= 0.35) confluence++;
-
+  let score = 50;
   let signal = 'HOLD';
   let conf = 'niska';
-  if (score >= CFG.buyScore && rangeScore > 0 && confluence >= 3) {
-    signal = 'BUY';
-    conf = (score >= CFG.highBuy && confluence >= 4) ? 'visoka' : 'srednja';
-  } else if (score <= CFG.sellScore && rangeScore < 0 && confluence >= 2) {
-    signal = 'SELL';
-    conf = (score <= CFG.highSell && confluence >= 3) ? 'visoka' : 'srednja';
+
+  if (order === 'MIN → MAX') {
+    score = 70 + Math.min(25, Math.abs(microMom) * 8);
+    if (r && r < 45) score += 5;
+    if (rangePos < 0.4) score += 5;
+    score = Math.min(98, Math.round(score));
+    if (score >= 85) { signal = 'BUY'; conf = score >= 90 ? 'visoka' : 'srednja'; }
+  } else {
+    score = 40 - Math.min(20, Math.abs(microMom) * 5);
+    score = Math.max(5, Math.round(score));
+    if (score <= 25) signal = 'SELL';
   }
 
   const entry = last;
   const sl = entry * (1 - CFG.slPct);
   const tp1 = entry * (1 + CFG.tp1Pct);
-  const predMax = Math.max(tp1, Math.min(bb ? bb.high : entry * 1.025, entry + atr * 1.5));
-  const predMin = Math.min(sl, Math.max(bb ? bb.low : entry * 0.98, entry - atr * 1.2));
+  const predMax = entry + atr * 1.4;
+  const predMin = entry - atr * 1.1;
   const predJumpPct = ((predMax - entry) / entry) * 100;
-  const rr = (entry - sl) > 0 ? (tp1 - entry) / (entry - sl) : 0.8;
-
-  const reasons = [];
-  if (rangePos < 0.20) reasons.push('blizu 7d dna');
-  if (r !== null && r < 35) reasons.push(`RSI ${r.toFixed(0)} oversold`);
-  if (bb && bb.pos < 0.20) reasons.push('ispod Bollinger');
-  if (quality >= 0.70) reasons.push('čist range');
-  if (microMom > 0.3) reasons.push('30m oporavak');
 
   return {
-    score, signal, conf, quality, rr: Math.round(rr * 10) / 10,
-    rangePos, rangePos24, rsi: r, bb, atr, rangePct,
-    predMin, predMax, predJumpPct, microMom,
-    entry, sl, tp1, tp2: predMax,
-    reason: reasons.length ? reasons.join(' · ') : 'sredina rangea / čekaj potvrdu'
+    score, signal, conf, rangePos, rsi: r, rangePct,
+    predMin, predMax, predJumpPct, microMom, order,
+    entry, sl, tp1,
+    reason: orderReason
   };
 }
-
-function autoLogSignals(list) {
-  let j = LS.journal();
-  const now = Date.now();
-  
-  list.filter(c => c.signal === 'BUY' && c.score >= CFG.buyScore).forEach(c => {
-    const existing = j.find(x => x.sym === c.sym && !x.evaluated && (now - x.time < 1800 * 1000));
-    if (!existing) {
-      j.unshift({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
-        sym: c.sym,
-        score: c.score,
-        entry: c.entry,
-        predMin: c.predMin,
-        predMax: c.predMax,
-        time: now,
-        timeStr: new Date().toLocaleTimeString('hr'),
-        evaluated: false,
-        actualPrice: null,
-        hit: null,
-        returnPct: null
-      });
-    }
-  });
-  LS.setJournal(j);
-}
-
-function evaluateJournal() {
-  let j = LS.journal();
-  const now = Date.now();
-  let updated = false;
-
-  j.forEach(p => {
-    if (!p.evaluated && (now - p.time >= 1800 * 1000)) {
-      const cur = latest[p.sym]?.price;
-      if (cur) {
-        p.evaluated = true;
-        p.actualPrice = cur;
-        p.hit = (cur >= p.predMin && cur <= p.predMax);
-        p.returnPct = ((cur - p.entry) / p.entry) * 100;
-        updated = true;
-      }
-    }
-  });
-
-  if (updated) {
-    LS.setJournal(j);
-  }
-  renderJournal();
-}
-
-function renderJournal() {
-  const j = LS.journal();
-  const closed = j.filter(x => x.evaluated);
-  const hits = closed.filter(x => x.hit).length;
-  const winRate = closed.length ? Math.round((hits / closed.length) * 100) : 0;
-
-  const elTotal = document.getElementById('jTotal');
-  const elHits = document.getElementById('jHits');
-  const elWR = document.getElementById('jWinRate');
-  const elStatAcc = document.getElementById('statAccuracy');
-
-  if (elTotal) elTotal.textContent = j.length;
-  if (elHits) elHits.textContent = hits;
-  if (elWR) elWR.textContent = closed.length ? `${winRate}%` : '—';
-  if (elStatAcc) elStatAcc.textContent = closed.length ? `${winRate}%` : '—';
-
-  let html = '';
-  j.forEach(p => {
-    const isReady = p.evaluated;
-    const badge = !isReady 
-      ? '<span class="pill bg-slate-700 text-slate-300">⏳ Čeka (30m)</span>'
-      : (p.hit ? '<span class="pill bg-emerald-900/60 text-emerald-300">✅ POGODAK</span>' : '<span class="pill bg-red-900/60 text-red-300">❌ PROMAŠAJ</span>');
-
-    const retColor = (p.returnPct || 0) >= 0 ? 'text-emerald-400' : 'text-red-400';
-
-    html += `
-    <div class="bg-dark-900 rounded-xl p-3 flex justify-between items-center gap-2">
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="font-bold">${p.sym}</span>
-          <span class="text-xs text-slate-500">${p.timeStr}</span>
-          ${badge}
-        </div>
-        <div class="text-xs text-slate-400 mt-1">
-          Ulaz: <b>${fmtP(p.entry)}</b> ➔ Raspon: <code>${fmtP(p.predMin)} - ${fmtP(p.predMax)}</code>
-        </div>
-      </div>
-      <div class="text-right">
-        ${isReady ? `<div class="font-bold text-sm ${retColor}">${fmtPct(p.returnPct)}</div><div class="text-xs text-slate-500">Kraj: ${fmtP(p.actualPrice)}</div>` : `<div class="text-xs text-slate-500">Mjerenje...</div>`}
-      </div>
-    </div>`;
-  });
-
-  const listEl = document.getElementById('journalList');
-  if (listEl) {
-    listEl.innerHTML = html || '<div class="text-slate-500 text-sm py-4 text-center">Nema zabilježenih predikcija. Čekam Score ≥ 85.</div>';
-  }
-}
-
-function clearJournal() {
-  if (!confirm('Obrisati cijeli dnevnik točnosti?')) return;
-  LS.setJournal([]);
-  renderJournal();
-}
-
-function renderPortfolio() {
-  const list = LS.pf();
-  const container = document.getElementById('pfList');
-  if (!container) return;
-  if (!list.length) {
-    container.innerHTML = '<div class="text-slate-500 text-center py-4">Portfolio je prazan.</div>';
-    return;
-  }
-  container.innerHTML = list.map((item, idx) => {
-    const cur = latest[item.sym]?.price || item.entry;
-    const pnl = ((cur - item.entry) / item.entry) * 100;
-    const pnlUsd = (cur - item.entry) * item.amount;
-    const color = pnl >= 0 ? 'text-emerald-400' : 'text-red-400';
-    return `
-    <div class="bg-dark-900 rounded-xl p-3 flex justify-between items-center">
-      <div>
-        <div class="font-bold">${item.sym} <span class="text-xs text-slate-400">(${item.amount})</span></div>
-        <div class="text-xs text-slate-500">Entry: ${fmtP(item.entry)} · Trenutno: ${fmtP(cur)}</div>
-      </div>
-      <div class="text-right">
-        <div class="font-bold ${color}">${fmtPct(pnl)} (${fmtP(pnlUsd)})</div>
-        <button onclick="pfRemove(${idx})" class="text-xs text-red-400 hover:underline">Ukloni</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function pfAdd() {
-  const sym = document.getElementById('pfCoin').value;
-  const amount = parseFloat(document.getElementById('pfAmount').value);
-  const entry = parseFloat(document.getElementById('pfEntry').value) || latest[sym]?.price;
-  if (!sym || !amount || !entry) return alert('Unesite količinu i cijenu.');
-  const list = LS.pf();
-  list.push({ sym, amount, entry });
-  LS.setPf(list);
-  document.getElementById('pfAmount').value = '';
-  document.getElementById('pfEntry').value = '';
-  renderPortfolio();
-}
-
-function pfRemove(idx) {
-  const list = LS.pf();
-  list.splice(idx, 1);
-  LS.setPf(list);
-  renderPortfolio();
-}
-
-function saveAlert() {
-  const sym = document.getElementById('aCoin').value;
-  const below = parseFloat(document.getElementById('aBelow').value) || null;
-  const score = parseInt(document.getElementById('aScore').value) || null;
-  if (!below && !score) return alert('Unesite barem jedan uvjet za alert.');
-  LS.setAlert({ sym, below, score });
-  renderAlert();
-  alert('Alert spremljen!');
-}
-
-function clearAlert() {
-  LS.setAlert(null);
-  renderAlert();
-}
-
-function renderAlert() {
-  const a = LS.alert();
-  const el = document.getElementById('alertText');
-  if (!el) return;
-  if (!a) {
-    el.textContent = 'Nema aktivnih alertova.';
-    return;
-  }
-  el.innerHTML = `Aktivan alert za <b>${a.sym}</b>: ${a.below ? `Cijena < $${a.below}` : ''} ${a.score ? `Score ≥ ${a.score}` : ''}`;
-}
-
-async function fetchMarkets() {
-  const ids = COIN_IDS.join(',');
-  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('CoinGecko limit — pričekaj 30s');
-  return await res.json();
-}
-
-async function loadAll() {
-  const btn = document.getElementById('btnAnalyze');
-  const status = document.getElementById('statusPill');
-  btn.disabled = true;
-  btn.textContent = 'Učitavam…';
-  status.textContent = 'analiza…';
-  status.className = 'pill bg-yellow-900/50 text-yellow-300';
-
-  try {
-    const raw = await fetchMarkets();
-    coins = raw.map(c => {
-      const spark = c.sparkline_in_7d?.price || [];
-      const a = analyzeSparkline(spark, c.current_price, c.price_change_percentage_24h || 0, c.total_volume, c.market_cap);
-      const item = {
-        id: c.id, sym: c.symbol.toUpperCase(), name: c.name,
-        price: c.current_price, change24: c.price_change_percentage_24h || 0,
-        mcap: c.market_cap, vol: c.total_volume, image: c.image, spark, ...a
-      };
-      latest[item.sym] = item;
-      return item;
-    });
-
-    coins.sort((a,b) => b.score - a.score);
-
-    autoLogSignals(coins);
-    evaluateJournal();
-
-    const buys = coins.filter(c => c.signal === 'BUY');
-    const high = coins.filter(c => c.conf === 'visoka');
-    const best = buys[0] || coins[0];
-
-    const elStatBuy = document.getElementById('statBuy');
-    const elStatHigh = document.getElementById('statHigh');
-    const elStatBest = document.getElementById('statBest');
-    const elStatTime = document.getElementById('statTime');
-
-    if (elStatBuy) elStatBuy.textContent = buys.length;
-    if (elStatHigh) elStatHigh.textContent = high.length;
-    if (elStatBest) elStatBest.textContent = best ? `${best.sym} (${best.score})` : '—';
-    if (elStatTime) elStatTime.textContent = new Date().toLocaleTimeString('hr');
-
-    let diag = '';
-    if (buys.length > 0) {
-      diag = `<b class="text-emerald-400">${buys.length} BUY signala</b> (Score ≥ 85). Najbolji 15–30m odskok: <b>${best.sym}</b> (Cilj TP1: <code>${fmtP(best.tp1)}</code> / +1.2%).`;
-    } else {
-      diag = `Nema novčića iznad Score 85. Tržište konsolidira. Čekamo čisto dno.`;
-    }
-    document.getElementById('mainDiag').innerHTML = diag;
-    status.textContent = 'gotovo';
-    status.className = 'pill bg-emerald-900/40 text-emerald-300';
-
-    fillSelects();
-    renderList();
-    renderSignals();
-    renderWatch();
-    renderSim();
-    renderPortfolio();
-    renderAlert();
-  } catch (e) {
-    document.getElementById('mainDiag').textContent = 'Greška: ' + e.message;
-    status.textContent = 'greška';
-    status.className = 'pill bg-red-900/40 text-red-300';
-  }
-  btn.disabled = false;
-  btn.textContent = '⚡ Analiziraj';
-}
-
-function fillSelects() {
-  const opts = coins.map(c => `<option value="${c.sym}">${c.sym}</option>`).join('');
-  ['pfCoin','aCoin'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = opts;
-  });
-}
-
-function setTab(id, btn) {
-  ['market','signals','journal','watch','sim','portfolio','alerts'].forEach(t => {
-    const el = document.getElementById('sec-'+t);
-    if (el) el.classList.toggle('hidden', t !== id);
-  });
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  if (id === 'journal') renderJournal();
-  if (id === 'watch') renderWatch();
-  if (id === 'sim') renderSim();
-  if (id === 'portfolio') renderPortfolio();
-  if (id === 'signals') renderSignals();
-  if (id === 'alerts') renderAlert();
-}
-
 function fmtP(p) {
   if (p == null || isNaN(p)) return 'n/a';
   if (p < 0.0001) return '$' + p.toPrecision(3);
@@ -722,24 +335,18 @@ function fmtPct(x) {
   if (x == null) return 'n/a';
   return (x >= 0 ? '+' : '') + Number(x).toFixed(2) + '%';
 }
-
 function cardHTML(c) {
   const watch = LS.watch();
   const isW = watch.includes(c.sym);
-  const sigClass = c.signal === 'BUY' ? 'signal-buy' : c.signal === 'SELL' ? 'signal-sell' : 'signal-hold';
-  const confClass = c.conf === 'visoka' ? 'conf-high' : '';
+  const orderColor = c.order === 'MIN → MAX' ? 'bg-emerald-900/60 text-emerald-300' : c.order === 'MAX → MIN' ? 'bg-red-900/60 text-red-300' : 'bg-slate-700 text-slate-300';
   const chColor = c.change24 >= 0 ? 'text-emerald-400' : 'text-red-400';
-
   return `
-  <div class="card p-3 sm:p-4 ${sigClass} ${confClass} cursor-pointer hover:border-slate-600 transition" onclick="openDetail('${c.sym}')">
+  <div class="card p-3 sm:p-4 cursor-pointer hover:border-slate-600 transition" onclick="openDetail('${c.sym}')">
     <div class="flex items-start justify-between gap-2">
       <div class="flex items-center gap-2.5 min-w-0">
         <img src="${c.image}" class="w-8 h-8 rounded-full" alt="" onerror="this.style.display='none'">
         <div class="min-w-0">
-          <div class="font-black text-base sm:text-lg truncate">${c.sym}
-            ${c.conf === 'visoka' ? '<span class="text-yellow-400 text-xs ml-1">★HIGH</span>' : ''}
-            <span class="text-slate-500 font-medium text-xs">${c.name}</span>
-          </div>
+          <div class="font-black text-base truncate">${c.sym} <span class="text-slate-500 font-medium text-xs">${c.name}</span></div>
           <div class="text-xs text-slate-400 truncate">${c.reason}</div>
         </div>
       </div>
@@ -748,58 +355,107 @@ function cardHTML(c) {
         <div class="text-xs ${chColor}">${fmtPct(c.change24)}</div>
       </div>
     </div>
-    
     <div class="flex flex-wrap gap-1.5 mt-2.5 items-center">
-      <span class="pill ${c.signal==='BUY'?'bg-emerald-900/60 text-emerald-300':c.signal==='SELL'?'bg-red-900/60 text-red-300':'bg-slate-700 text-slate-300'}">${c.signal} · ${c.score}</span>
-      <span class="pill bg-sky-900/50 text-sky-300">15–30m Raspon: ${fmtP(c.predMin)} - ${fmtP(c.predMax)}</span>
+      <span class="pill ${orderColor}">${c.order}</span>
+      <span class="pill bg-sky-900/50 text-sky-300">Raspon: ${fmtP(c.predMin)} – ${fmtP(c.predMax)}</span>
+      <span class="pill bg-slate-800 text-slate-300">Skok +${c.predJumpPct.toFixed(2)}%</span>
       <span class="pill bg-slate-800 text-slate-300">RSI ${c.rsi != null ? c.rsi.toFixed(0) : '—'}</span>
-      <button onclick="event.stopPropagation();toggleWatch('${c.sym}')" class="ml-auto text-lg leading-none ${isW?'text-yellow-400':'text-slate-600 hover:text-yellow-400'}">${isW?'★':'☆'}</button>
-    </div>
-
-    <div class="grid grid-cols-3 gap-2 mt-2.5 text-center text-xs">
-      <div class="bg-dark-900 rounded-lg py-1.5"><div class="text-slate-500">Entry</div><div class="font-bold text-white">${fmtP(c.entry)}</div></div>
-      <div class="bg-dark-900 rounded-lg py-1.5"><div class="text-slate-500">SL (-1.5%)</div><div class="font-bold text-red-400">${fmtP(c.sl)}</div></div>
-      <div class="bg-dark-900 rounded-lg py-1.5"><div class="text-slate-500">TP1 (+1.2%)</div><div class="font-bold text-emerald-400">${fmtP(c.tp1)}</div></div>
+      <button onclick="event.stopPropagation();toggleWatch('${c.sym}')" class="ml-auto text-lg ${isW?'text-yellow-400':'text-slate-600'}">${isW?'★':'☆'}</button>
     </div>
   </div>`;
 }
+async function fetchMarkets() {
+  const ids = COIN_IDS.join(',');
+  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=true&price_change_percentage=24h`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('CoinGecko limit — pričekaj 30s');
+  return await res.json();
+}
+async function loadAll() {
+  const btn = document.getElementById('btnAnalyze');
+  const status = document.getElementById('statusPill');
+  btn.disabled = true;
+  btn.textContent = 'Učitavam…';
+  status.textContent = 'analiza…';
+  status.className = 'pill bg-yellow-900/50 text-yellow-300';
+  try {
+    const raw = await fetchMarkets();
+    coins = raw.map(c => {
+      const spark = c.sparkline_in_7d?.price || [];
+      const a = analyzeSparkline(spark, c.current_price, c.price_change_percentage_24h || 0);
+      const item = {
+        id: c.id, sym: c.symbol.toUpperCase(), name: c.name,
+        price: c.current_price, change24: c.price_change_percentage_24h || 0,
+        mcap: c.market_cap, image: c.image, spark, ...a
+      };
+      latest[item.sym] = item;
+      return item;
+    });
+    coins.sort((a,b) => b.predJumpPct - a.predJumpPct);
 
+    const minMax = coins.filter(c => c.order === 'MIN → MAX');
+    const maxMin = coins.filter(c => c.order === 'MAX → MIN');
+    const best = minMax[0] || coins[0];
+
+    document.getElementById('statBuy').textContent = minMax.length;
+    document.getElementById('statSell').textContent = maxMin.length;
+    document.getElementById('statHigh').textContent = coins.filter(c => c.conf === 'visoka').length;
+    document.getElementById('statBest').textContent = best ? `${best.sym} (+${best.predJumpPct.toFixed(1)}%)` : '—';
+    document.getElementById('statTime').textContent = new Date().toLocaleTimeString('hr');
+
+    let diag = '';
+    if (minMax.length > 0) {
+      diag = `<b class="text-emerald-400">${minMax.length}× MIN→MAX</b>. Najveći skok: <b>${best.sym}</b> (+${best.predJumpPct.toFixed(2)}%).`;
+    } else {
+      diag = `Trenutno nema jakih MIN→MAX signala. Tržište čeka.`;
+    }
+    document.getElementById('mainDiag').innerHTML = diag;
+    status.textContent = 'gotovo';
+    status.className = 'pill bg-emerald-900/40 text-emerald-300';
+    renderList();
+    renderSignals();
+    renderWatch();
+  } catch (e) {
+    document.getElementById('mainDiag').textContent = 'Greška: ' + e.message;
+    status.textContent = 'greška';
+    status.className = 'pill bg-red-900/40 text-red-300';
+  }
+  btn.disabled = false;
+  btn.textContent = '⚡ Analiziraj';
+}
+function setTab(id, btn) {
+  ['market','signals','journal','watch','sim','portfolio','alerts'].forEach(t => {
+    const el = document.getElementById('sec-'+t);
+    if (el) el.classList.toggle('hidden', t !== id);
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
 function renderList() {
   const sig = document.getElementById('filterSig').value;
   const sort = document.getElementById('sortBy').value;
   const q = (document.getElementById('searchCoin').value || '').toUpperCase().trim();
-
   let list = coins.slice();
-  if (sig === 'HIGH') list = list.filter(c => c.conf === 'visoka');
-  else if (sig !== 'all') list = list.filter(c => c.signal === sig);
+  if (sig === 'MIN→MAX') list = list.filter(c => c.order === 'MIN → MAX');
+  else if (sig === 'MAX→MIN') list = list.filter(c => c.order === 'MAX → MIN');
+  else if (sig === 'BUY') list = list.filter(c => c.signal === 'BUY');
+  else if (sig === 'HOLD') list = list.filter(c => c.signal === 'HOLD');
   if (q) list = list.filter(c => c.sym.includes(q) || c.name.toUpperCase().includes(q));
-
   if (sort === 'score') list.sort((a,b) => b.score - a.score);
   else if (sort === 'pred') list.sort((a,b) => b.predJumpPct - a.predJumpPct);
   else if (sort === 'change') list.sort((a,b) => b.change24 - a.change24);
-  else if (sort === 'mcap') list.sort((a,b) => (b.mcap||0) - (a.mcap||0));
   else if (sort === 'name') list.sort((a,b) => a.sym.localeCompare(b.sym));
-
-  document.getElementById('coinList').innerHTML = list.length
-    ? list.map(cardHTML).join('')
-    : '<div class="text-slate-500 text-sm py-8 text-center">Nema rezultata. Pritisni Analiziraj.</div>';
+  document.getElementById('coinList').innerHTML = list.length ? list.map(cardHTML).join('') : '<div class="text-slate-500 text-sm py-8 text-center">Nema rezultata.</div>';
 }
-
 function renderSignals() {
-  const active = coins.filter(c => c.signal === 'BUY' || c.signal === 'SELL').sort((a,b) => b.score - a.score);
-  document.getElementById('signalList').innerHTML = active.length
-    ? active.map(cardHTML).join('')
-    : '<div class="text-slate-500 text-sm py-6 text-center">Nema aktivnih signala (Score ≥ 85). Čekamo potvrđeno dno.</div>';
+  const active = coins.filter(c => c.order === 'MIN → MAX').sort((a,b) => b.predJumpPct - a.predJumpPct);
+  document.getElementById('signalList').innerHTML = active.length ? active.map(cardHTML).join('') : '<div class="text-slate-500 text-sm py-6 text-center">Nema MIN→MAX signala.</div>';
 }
-
 function renderWatch() {
   const w = LS.watch();
   const list = coins.filter(c => w.includes(c.sym));
-  document.getElementById('watchList').innerHTML = list.length
-    ? list.map(cardHTML).join('')
-    : '<div class="text-slate-500 text-sm py-6 text-center">Watchlist prazan.</div>';
+  document.getElementById('watchList').innerHTML = list.length ? list.map(cardHTML).join('') : '<div class="text-slate-500 text-sm py-6 text-center">Watchlist prazan.</div>';
 }
-
 function toggleWatch(sym) {
   let w = LS.watch();
   if (w.includes(sym)) w = w.filter(x => x !== sym);
@@ -807,86 +463,44 @@ function toggleWatch(sym) {
   LS.setWatch(w);
   renderList(); renderSignals(); renderWatch();
 }
-
 function openDetail(sym) {
   const c = latest[sym];
   if (!c) return;
   detailCoin = c;
   document.getElementById('dTitle').textContent = `${c.sym} · ${c.name}`;
-  document.getElementById('dSub').textContent = `${c.signal} ${c.score} · 15–30m Cilj: ${fmtP(c.tp1)} (+1.2%)`;
+  document.getElementById('dSub').textContent = `${c.order} · Skok +${c.predJumpPct.toFixed(2)}%`;
   document.getElementById('dBody').innerHTML = `
     <div class="grid grid-cols-2 gap-2">
-      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Cijena (Entry)</div><div class="font-bold">${fmtP(c.price)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">TP1 Meta (+1.2%)</div><div class="font-bold text-emerald-400">${fmtP(c.tp1)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">SL Prag (-1.5%)</div><div class="font-bold text-red-400">${fmtP(c.sl)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">30m Očekivani Raspon</div><div class="font-bold text-sky-400">${fmtP(c.predMin)} - ${fmtP(c.predMax)}</div></div>
-      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">RSI (14)</div><div class="font-bold">${c.rsi != null ? c.rsi.toFixed(1) : '—'}</div></div>
-      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Score / Conf</div><div class="font-bold">${c.score}/100 (${c.conf})</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Cijena</div><div class="font-bold">${fmtP(c.price)}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Redoslijed</div><div class="font-bold">${c.order}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Pred. MIN</div><div class="font-bold text-red-400">${fmtP(c.predMin)}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Pred. MAX</div><div class="font-bold text-emerald-400">${fmtP(c.predMax)}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">RSI</div><div class="font-bold">${c.rsi != null ? c.rsi.toFixed(1) : '—'}</div></div>
+      <div class="bg-dark-900 rounded-lg p-2"><div class="text-slate-500 text-xs">Score</div><div class="font-bold">${c.score}</div></div>
     </div>
-    <div class="mt-2 text-xs text-slate-400">Sinkronizirano s Python botom (15–30 min rotacija kapitala).</div>
-    <div class="mt-1 text-xs text-slate-500">${c.reason}</div>
+    <div class="mt-2 text-xs text-slate-400">${c.reason}</div>
   `;
-
   const modal = document.getElementById('detailModal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-
-  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  if (chartInstance) chartInstance.destroy();
   const ctx = document.getElementById('dChart').getContext('2d');
   const data = (c.spark || []).map(Number);
   chartInstance = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: data.map((_,i)=>i),
-      datasets: [{
-        data,
-        borderColor: c.signal === 'BUY' ? '#22c55e' : c.signal === 'SELL' ? '#ef4444' : '#38bdf8',
-        borderWidth: 2, pointRadius: 0,
-        tension: 0.2
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { display: false },
-        y: { display: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } } }
-      }
-    }
+    data: { labels: data.map((_,i)=>i), datasets: [{ data, borderColor: c.order === 'MIN → MAX' ? '#22c55e' : '#ef4444', borderWidth: 2, pointRadius: 0, tension: 0.2 }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b', font: { size: 10 } } } } }
   });
 }
-
 function closeDetail() {
   document.getElementById('detailModal').classList.add('hidden');
   document.getElementById('detailModal').classList.remove('flex');
   if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
-  detailCoin = null;
 }
-
-function renderSim() {
-  const s = LS.sim();
-  document.getElementById('simCapital').textContent = fmtP(s.capital);
-  document.getElementById('simEquity').textContent = fmtP(s.equity);
+function clearJournal() {
+  LS.setJournal([]);
+  document.getElementById('journalList').innerHTML = '';
 }
-
-function simReset() {
-  LS.setSim({ capital: 10000, equity: 10000, trades: [] });
-  renderSim();
-}
-
-function simClearClosed() {
-  const s = LS.sim();
-  s.trades = s.trades.filter(t => t.status === 'OPEN');
-  LS.setSim(s);
-  renderSim();
-}
-
-function simOpenFromDetail(side) {
-  if (!detailCoin) return;
-  alert(`Paper ${side} otvoren za ${detailCoin.sym} @ ${fmtP(detailCoin.price)}`);
-  closeDetail();
-}
-
 function toggleAuto() {
   const btn = document.getElementById('btnAuto');
   if (autoTimer) {
@@ -899,7 +513,6 @@ function toggleAuto() {
     loadAll();
   }
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   toggleAuto();
 });
